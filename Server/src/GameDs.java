@@ -9,7 +9,7 @@ import org.java_websocket.WebSocket;
 public class GameDs {
 
 	/*-------------   Shared Objects --------------------*/
-	public static List<Organ> organs = new ArrayList<>();
+	public static List<List<Organ>> organsLists = new ArrayList<>();
 	public static List<Blob> blobs = new ArrayList<>();
 	public static List<Player> players = new ArrayList<>();
 	public static List<WebSocket> connections = new ArrayList<>();

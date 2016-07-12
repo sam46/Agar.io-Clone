@@ -1,12 +1,12 @@
 public class Vector {
 	
 	public double th ;
-	public float x,y;
-	public float mag;
+	public double x,y;
+	public double mag;
 	public Vector normalized;
 	
 	private void calMag() {
-		mag = ( float) Math.sqrt( (x)*(x) + (y)*(y) );
+		mag = Math.sqrt( (x)*(x) + (y)*(y) );
 	}
 	
 	private void calTh() {
@@ -14,11 +14,11 @@ public class Vector {
 	}
 	
 	private void calCartesian() {
-		x = (float) (mag*Math.cos(th));
-		y = (float) (mag*Math.sin(th));
+		x =  (mag*Math.cos(th));
+		y =  (mag*Math.sin(th));
 	}
 	
-	public Vector(double dir ,float mag) {
+	public Vector(double dir ,double mag) {
 		th = dir;
 		this.mag = mag;
 		calCartesian();
@@ -28,7 +28,7 @@ public class Vector {
 		this(vec.th, vec.mag);
 	}
 
-	public Vector(float xi,float yi,float xf,float yf){
+	public Vector(double xi,double yi,double xf,double yf){
 		x = xf-xi; y = yf-yi;
 		calMag();
 		calTh();
@@ -46,7 +46,7 @@ public class Vector {
 		normalized = new Vector(x/mag, y/mag);
 	}
 
-	public void Scale(float c){
+	public void Scale(double c){
 		x = x*c;
 		y = y*c;
 		calMag();
@@ -58,7 +58,7 @@ public class Vector {
 		return normalized;
 	}
 	
-	public void add(float X, float Y){
+	public void add(double X, double Y){
 		this.x += X;
 		this.y += Y;
 		

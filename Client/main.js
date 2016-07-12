@@ -12,7 +12,7 @@ var wrdWidth = 2000*3, wrdHeight = 2000*3;				// world dimensions
 var conn;
 var inSeq = 0, inBuff = [];
 var ease_step = 0.45, ease_spd = 10;
-var lastTime, times = 60, ms = 1000.0 / times, delta = 0.0;		// for delta-timing adnd constant framerate
+var lastTime, times = 56, ms = 1000.0 / times, delta = 0.0;		// for delta-timing and consistent physics
 var xshift, yshift;			// for translating the world to be in main player's perspective
 var batch_size = 30;		// how many user inputs to handle and send each frame  TODO: tweak
 var fps = [], _ind_ = 0;	// for showing fps
@@ -36,7 +36,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.easey = 0.0;
 }
 
-Organ.prototype.move = function(){
+Organ.prototype.move = function() {
 	this.x += this.xspd;
 	this.y += this.yspd;
 };
@@ -49,8 +49,10 @@ Organ.prototype.update = function () {
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
 		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
 		this.easeDist -= ease_spd*dt*ease_step*this.easeDist;
-		if(Math.abs(this.easeDist) <= 0.001)
+		if(Math.abs(this.easeDist) <= 0.001){
 			this.applyPosEase = false;
+			this.lock = true;
+		}
 	}
 	
 	if(this.applySizeEase){
@@ -111,7 +113,6 @@ Player.prototype.constrain = function(){	// constrain organs movements
 			var ang = Math.atan2( this.directY, this.directX);
 			org.xspd = Math.cos(ang) * mag;
 			org.yspd = Math.sin(ang) * mag;
-
 		}
 	}
 
@@ -180,9 +181,11 @@ window.onload = function() {
 		height = canvas.height = window.innerHeight;
 	var ready = false;
 	var mp = new Player(-1);		// main player
-	mp.x = -1,
-	mp.y = -1;
 
+
+    if ("WebSocket" in window)
+    	 ;
+  	else console.log("Browser doesn't support WebSocket");
 	generateBlobs();
 	Connect();
 	initFPS();
@@ -204,23 +207,29 @@ function Connect(){
 		if(fst_msg) {	
 			var init_data = String(e.data).split(',');
 			myid = parseInt(init_data[0]);
-			mp.organs.push(new Organ(1,1,38,5,5));
+			mp.organs.push(new Organ(1,1,1,1,1));
 			mp.organs[0].x = parseFloat(init_data[1]);
-			mp.organs[0].y = parseFloat(init_data[2]);
+			mp.organs[0].y = parseFloat(init_data[2]); 
 			mp.organs[0].size = parseFloat(init_data[3]);
+			mp.organs[0].xspd = parseFloat(init_data[4]); 
+			mp.organs[0].yspd = parseFloat(init_data[5]); 
+
 			// add a center of mass property to mp
 			mp.cmx = mp.organs[0].x;						
 			mp.cmy = mp.organs[0].y; 
 
-			console.log(parseFloat(init_data[1])+","+parseFloat(init_data[2]));
+			//console.log(parseFloat(init_data[1])+","+parseFloat(init_data[2]));
 			fst_msg = false;
+			
+			
 			ready = true;
 			lastTime = performance.now();
-			return;
 		}
-		return;
+		
 
-		/* if it's not the first msg:
+		// Code here is temporary, for quick testing : 
+
+		//if it's not the first msg:
 		var e_str = String(e.data);
 		var str_array = e_str.split(';');
 		
@@ -229,17 +238,19 @@ function Connect(){
 			if(str_array[i]=="") continue;
 
 			var plyr_data = str_array[i].split(',');
-			var tempPlayer = new Player_data( parseInt(plyr_data[0]), parseFloat(plyr_data[1]),
-											 parseFloat(plyr_data[2]), parseFloat(plyr_data[3]) );
+			var tempPlayer = new Player(parseInt(plyr_data[0]));
+			tempPlayer.x = parseFloat(plyr_data[1]);
+			tempPlayer.y = parseFloat(plyr_data[2]);
+			tempPlayer.size = parseFloat(plyr_data[3]);
 			// if this message is for main player:
-			if(tempPlayer.pid == myid) { 			// TODO fix this part, multiple organs can share the same id. there shouldnt be a single x,y and size, but one for each organ
-				x = tempPlayer.x;
-				y = tempPlayer.y;
-				size = tempPlayer.size;
-			} 
+			//if(tempPlayer.pid == myid) { 			// TODO fix this part, multiple organs can share the same id. there shouldnt be a single x,y and size, but one for each organ
+			//	x = tempPlayer.x;
+			//	y = tempPlayer.y;
+			//	size = tempPlayer.size;
+			//} 
 			// if it's not, update players[]
-			else players.push(tempPlayer);
-		}*/
+			players.push(tempPlayer);
+		}
 
 	};
 
@@ -250,6 +261,7 @@ function Connect(){
 
 	function addEventListeners(){
 		document.body.addEventListener("mousemove", function(event) {
+
 			inBuff.push(
 				{	
 					seq : inSeq,
@@ -270,39 +282,38 @@ function Connect(){
 			inSeq++;
 		});
 	}
-
 }	// end connect()
 
 function send(input) {
 	if(input)
-		conn.send(input.inSeq+","+input.inType+","+input.xdir+","+input.ydir);
+		conn.send(input.inType+","+input.xdir+","+input.ydir);
 }
 
 function run() {		// Main game-loop function
 	if(ready) {
 
+		//console.log(xshift);
 		var batchSize = batch_size;
 		while(batchSize > 0 && inBuff.length>0) {
-		var input = inBuff.shift();			// shift() removes the first element.... as in Queues
-		//send(input);		TODO: enable later
+			var input = inBuff.shift();			// shift() removes the first element.... as in Queues
+			send(input);		//TODO: enable later
 			process(input);
 			batchSize--;
 		}
 		
 		var now = performance.now();
-		displayFPS(now);
+		//displayFPS(now);
 	    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update 
 		lastTime = now;
 
 
 	
 		if(delta >= 1) { 
-			// updates here:   will run at times/second
+			// code here should run at times/second
 			for(var i=0; i<mp.organs.length; i++) 
 				mp.organs[i].update();
 			mp.constrain();	
 			mp.calCM();
-
 			delta--;
 		}
 
@@ -311,8 +322,23 @@ function run() {		// Main game-loop function
 		yshift = mp.cmy - height/2; 
 		drawGrid();
 		drawBlobs();
+
+		/*
+		//draw mp
 		for(var i=0; i<mp.organs.length; i++) 
 			mp.organs[i].draw(context);
+		*/
+
+
+		// for testing: draw server output
+		if(players.length!=0)
+		for(var i = 0; i < players.length; i++) {
+			context.beginPath();
+			context.arc(players[i].x - xshift, players[i].y - yshift, players[i].size, 0,2*Math.PI);
+			context.fillStyle = "red";
+			context.fill();	
+		}
+
 
 	}
 
@@ -329,10 +355,12 @@ function run() {		// Main game-loop function
 	requestAnimationFrame(run);
 }	// end run()
 
+
 function process(input) {
+
 	var tempOrgans = [];
 	for(var i=0; i < mp.organs.length; i++) {
-		// each orgnas will try to move towards the mouse pointer, but later when the orgnas are packed together, they'll follow CM direction
+		// each orgnas will try to move towards the mouse pointer, but later when the organs are packed together, they'll follow CM direction
 		var xspd = mp.organs[i].xspd;
 		var yspd = mp.organs[i].yspd;
 		var mag = Math.sqrt(xspd*xspd + yspd*yspd);
@@ -341,6 +369,7 @@ function process(input) {
 
 		mp.organs[i].xspd = Math.cos(ang) * mag;
 		mp.organs[i].yspd = Math.sin(ang) * mag;
+
 
 		mp.directX = input.xdir;
 		mp.directY = input.ydir;

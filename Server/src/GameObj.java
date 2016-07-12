@@ -1,7 +1,7 @@
 // A game object is the base type of: Organs and Blobs
-public class GameObj {		
-	float size = 0;
-	Vector pos = null, speed = null;
+public class GameObj {
+	double size = 0;
+	Vector pos = null, vel = null;
 	
 	public void absorb(GameObj small){}
 	public void consume(GameObj big){}

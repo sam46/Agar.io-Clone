@@ -1,13 +1,19 @@
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Arc2D;
+import java.awt.image.RenderedImage;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.StringTokenizer;
 import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.image.*;
+import javax.swing.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import javax.imageio.stream.ImageInputStream;
 import javax.swing.Timer;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;
@@ -17,6 +23,10 @@ import org.java_websocket.framing.FrameBuilder;
 import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import java.io.*;
+import javax.imageio.*;
 
 public class MyWsServer extends WebSocketServer {
 	private static int counter = 0;	// count how many players are currently connected
@@ -81,24 +91,29 @@ public class MyWsServer extends WebSocketServer {
 	}
 
 	@Override
-	public  void onMessage( WebSocket conn, String message ) { 
+	public  void onMessage( WebSocket conn, String message ) {
+		//System.out.println("in: "+message);
+
 		// route this message to GameDs.inputBuf
 		int type;
-		Uinput uin;
+		Uinput uin = null;
 		stok = new StringTokenizer(message, ",");
 		String fstTok = stok.nextToken();
-		
+
+		// message type is 0 -->  mouse move
 		if(fstTok.equals("mm"))	type = 0;
+
+		// message type is 1 --> mouse down
 		else if (fstTok.equals("md")) 
 			type = 1;
 		else return;
 		
 		try {
-			uin = new Uinput(type, conn.hashCode(), Float.parseFloat(stok.nextToken()),
-				 Float.parseFloat(stok.nextToken()));
+			uin = new Uinput( type, conn.hashCode(), Double.parseDouble(stok.nextToken()),
+				 Double.parseDouble(stok.nextToken()) );
 		} catch(Exception e){ 
 			e.printStackTrace();
-			return;
+			System.exit(0);
 		}
 		
 		try{
@@ -108,9 +123,15 @@ public class MyWsServer extends WebSocketServer {
 			//System.out.println(message);
 			System.exit(0);
 		}
-		
+
 	}
-	
+
+
+	@Override
+	public void onMessage(WebSocket conn, ByteBuffer message){
+		// binary ByteArray message received
+	}
+
 	public void onWebsocketMessageFragment( WebSocket conn, Framedata frame ) {
 		FrameBuilder builder = (FrameBuilder) frame;
 		builder.setTransferemasked( false );
@@ -127,14 +148,19 @@ public class MyWsServer extends WebSocketServer {
 			System.out.println( "No port specified. Defaulting to 8080" );
 			port = 8080;
 		}
-		
+
+
+
+
+
 		MyWsServer server = new MyWsServer( port, new Draft_17() );		 // Thread 2
 		Thread bc = new Thread(new Broadcaster());					     // Thread 3
 		Thread wrld = new Thread(new World(server.inputBuf));			 // Thread 4
-		
-		server.start();			
+
+
+		server.start();
 		bc.start();
-		wrld.start();		
+		wrld.start();
 	}
 	
 }

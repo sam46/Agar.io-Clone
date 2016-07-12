@@ -16,26 +16,28 @@ public class Player {
 	public Player(WebSocket ws){
 		conn = ws;
 		Random rand = new Random();
-		pid = ws.hashCode();
+		pid = ws.hashCode();		// the player id will just be the hash of the websocket
 		
 		myorgans = new ArrayList<Organ>();
 		Organ temp = new Organ(pid);
 
 		temp.pos = new Vector(0, 0, rand.nextFloat()*200, rand.nextFloat()*200);
-		temp.speed = new Vector(0,0,2000,0);
-		temp.size = 38.0f;
+		temp.vel = new Vector(0,0,4,0);
+		temp.mpCMx = temp.pos.x;
+		temp.mpCMy = temp.pos.y;
+		temp.size = 38.0;
 
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {
-			GameDs.organs.add(temp);
+			GameDs.organsLists.add(myorgans);
 		}
 		
 	}
 	
 	public String getData(){	// will be used for first message only
 		return ""+conn.hashCode()+","+myorgans.get(0).pos.x+","+myorgans.get(0).pos.y+","+
-				myorgans.get(0).size;
+				myorgans.get(0).size+","+myorgans.get(0).vel.x+","+myorgans.get(0).vel.y;
 	}
 	
 	public void send(String data){
