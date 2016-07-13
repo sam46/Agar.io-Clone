@@ -12,7 +12,7 @@ var wrdWidth = 2000*3, wrdHeight = 2000*3;				// world dimensions
 var conn;
 var inSeq = 0, inBuff = [];
 var ease_step = 0.45, ease_spd = 10;
-var lastTime, times = 56, ms = 1000.0 / times, delta = 0.0;		// for delta-timing and consistent physics
+var lastTime, times = 56, ms = 1000.0/times, delta = 0.0;		// for delta-timing and consistent physics
 var xshift, yshift;			// for translating the world to be in main player's perspective
 var batch_size = 30;		// how many user inputs to handle and send each frame  TODO: tweak
 var fps = [], _ind_ = 0;	// for showing fps
@@ -26,7 +26,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.yspd = ySpd;
 	this.size = size;
 	this.authPos = [];			// authoritative positions
-	this.color = colors[Math.floor((Math.random() * colors.length))];
+	this.color = "blue";//colors[Math.floor((Math.random() * colors.length))];
 	// Easing variables
 	this.applySizeEase = false;
 	this.massDelta = 0.0;
@@ -97,9 +97,9 @@ Organ.prototype.draw = function (context) {
 
 function Player(player_id) {
 	this.pid = player_id;
-	this.organs = []
-	this.cmx = 0;		// center of mass (CM), the point equidistant from all organs
-	this.cmy = 0;
+	this.organs = [];
+	this.cmx;		// center of mass (CM), the point equidistant from all organs
+	this.cmy;
 	this.directX = 0;	// direction in which CM is headed
 	this.directY = 0;
 }
@@ -125,7 +125,7 @@ Player.prototype.constrain = function(){	// constrain organs movements
 			var radSum = org2.size+org1.size;		// sum of radii
 			var distSqr = distSq(org1.x, org1.y, org2.x, org2.y);	// distance between centers squared
 
-			if( Math.pow(radSum, 2) + 0.5>  distSqr) {		// if there's an intersection 
+			if(radSum*radSum + 0.5 > distSqr) {		// if there's an intersection 
 
 				var interleave = radSum - Math.sqrt(distSqr);	// how much are the two circles intersecting?  r1 + r2 - distnace
 				
@@ -208,26 +208,23 @@ function Connect(){
 			var init_data = String(e.data).split(',');
 			myid = parseInt(init_data[0]);
 			mp.organs.push(new Organ(1,1,1,1,1));
-			mp.organs[0].x = parseFloat(init_data[1]);
-			mp.organs[0].y = parseFloat(init_data[2]); 
-			mp.organs[0].size = parseFloat(init_data[3]);
-			mp.organs[0].xspd = parseFloat(init_data[4]); 
-			mp.organs[0].yspd = parseFloat(init_data[5]); 
-
-			// add a center of mass property to mp
+			mp.organs[0].x = parseDouble(init_data[1]);
+			mp.organs[0].y = parseDouble(init_data[2]); 
+			mp.organs[0].size = parseDouble(init_data[3]);
+			mp.organs[0].xspd = parseDouble(init_data[4]); 
+			mp.organs[0].yspd = parseDouble(init_data[5]); 
 			mp.cmx = mp.organs[0].x;						
 			mp.cmy = mp.organs[0].y; 
 
 			//console.log(parseFloat(init_data[1])+","+parseFloat(init_data[2]));
 			fst_msg = false;
-			
-			
+						
 			ready = true;
 			lastTime = performance.now();
 		}
 		
 
-		// Code here is temporary, for quick testing : 
+		// Code here is temporary, for quick testing: 
 
 		//if it's not the first msg:
 		var e_str = String(e.data);
@@ -239,9 +236,9 @@ function Connect(){
 
 			var plyr_data = str_array[i].split(',');
 			var tempPlayer = new Player(parseInt(plyr_data[0]));
-			tempPlayer.x = parseFloat(plyr_data[1]);
-			tempPlayer.y = parseFloat(plyr_data[2]);
-			tempPlayer.size = parseFloat(plyr_data[3]);
+			tempPlayer.x = parseDouble(plyr_data[1]);
+			tempPlayer.y = parseDouble(plyr_data[2]);
+			tempPlayer.size = parseDouble(plyr_data[3]);
 			// if this message is for main player:
 			//if(tempPlayer.pid == myid) { 			// TODO fix this part, multiple organs can share the same id. there shouldnt be a single x,y and size, but one for each organ
 			//	x = tempPlayer.x;
@@ -289,23 +286,21 @@ function send(input) {
 		conn.send(input.inType+","+input.xdir+","+input.ydir);
 }
 
+
 function run() {		// Main game-loop function
 	if(ready) {
 
-		//console.log(xshift);
 		var batchSize = batch_size;
-		while(batchSize > 0 && inBuff.length>0) {
+		while(batchSize-- > 0 && inBuff.length > 0) {
 			var input = inBuff.shift();			// shift() removes the first element.... as in Queues
-			send(input);		//TODO: enable later
+			send(input);		
 			process(input);
-			batchSize--;
 		}
 		
 		var now = performance.now();
-		//displayFPS(now);
+		displayFPS(now);
 	    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update 
 		lastTime = now;
-
 
 	
 		if(delta >= 1) { 
@@ -323,11 +318,11 @@ function run() {		// Main game-loop function
 		drawGrid();
 		drawBlobs();
 
-		/*
+		
 		//draw mp
 		for(var i=0; i<mp.organs.length; i++) 
 			mp.organs[i].draw(context);
-		*/
+		
 
 
 		// for testing: draw server output
@@ -338,7 +333,6 @@ function run() {		// Main game-loop function
 			context.fillStyle = "red";
 			context.fill();	
 		}
-
 
 	}
 
@@ -357,7 +351,6 @@ function run() {		// Main game-loop function
 
 
 function process(input) {
-
 	var tempOrgans = [];
 	for(var i=0; i < mp.organs.length; i++) {
 		// each orgnas will try to move towards the mouse pointer, but later when the organs are packed together, they'll follow CM direction
@@ -380,6 +373,7 @@ function process(input) {
 
 	for(var i=0; i < tempOrgans.length; i++) 
 		mp.organs.push(tempOrgans[i]);
+
 }	// end process()
 
 function drawGrid() {

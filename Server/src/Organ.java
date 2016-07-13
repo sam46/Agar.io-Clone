@@ -6,8 +6,8 @@
 public class Organ extends GameObj {
 	int owner;
 	public boolean lock = false;
-	public double mpDirectX, mpDirectY;
-	public double mpCMx = -1, mpCMy = -1;
+	public Vector mpDirect;
+	public Vector  mpCM;
 	/* Easing variables */
 	private static final double ease_step = 0.5, ease_spd = 60;		// control the speed of the easing and how many frames it takes to finish
 	private double easeDist,			// how far will the organ go when launched
@@ -15,16 +15,12 @@ public class Organ extends GameObj {
 	private Vector easeVec;			// in which direction will the organ launch
 	public boolean applyPosEase = false, applySizeEase = false;
 
-
-	
-	public Organ(int pid) {
-		this.owner = pid;
-	}
-
 	public Organ(int pid, double x, double y, double size, double xspd, double yspd) {
 		this.owner = pid;
 		this.pos = new Vector(0,0, x, y);
 		this.vel = new Vector(0,0, xspd, yspd);
+		this.mpCM = new Vector(0,0, x, y);
+		this.mpDirect = new Vector(0,0, 0,0);
 		this.size = size;
 	}
 	

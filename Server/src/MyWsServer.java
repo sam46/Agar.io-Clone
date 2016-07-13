@@ -1,20 +1,10 @@
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.geom.Arc2D;
-import java.awt.image.RenderedImage;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.StringTokenizer;
-import java.awt.*;
-import java.awt.Graphics2D;
-import java.awt.image.*;
-import javax.swing.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import javax.imageio.stream.ImageInputStream;
-import javax.swing.Timer;
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
@@ -23,11 +13,6 @@ import org.java_websocket.framing.FrameBuilder;
 import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import java.io.*;
-import javax.imageio.*;
-
 public class MyWsServer extends WebSocketServer {
 	private static int counter = 0;	// count how many players are currently connected
 	private volatile StringTokenizer stok;
@@ -149,14 +134,9 @@ public class MyWsServer extends WebSocketServer {
 			port = 8080;
 		}
 
-
-
-
-
 		MyWsServer server = new MyWsServer( port, new Draft_17() );		 // Thread 2
 		Thread bc = new Thread(new Broadcaster());					     // Thread 3
 		Thread wrld = new Thread(new World(server.inputBuf));			 // Thread 4
-
 
 		server.start();
 		bc.start();

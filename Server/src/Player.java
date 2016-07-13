@@ -19,20 +19,13 @@ public class Player {
 		pid = ws.hashCode();		// the player id will just be the hash of the websocket
 		
 		myorgans = new ArrayList<Organ>();
-		Organ temp = new Organ(pid);
-
-		temp.pos = new Vector(0, 0, rand.nextFloat()*200, rand.nextFloat()*200);
-		temp.vel = new Vector(0,0,4,0);
-		temp.mpCMx = temp.pos.x;
-		temp.mpCMy = temp.pos.y;
-		temp.size = 38.0;
-
+		Organ temp = new Organ(pid, rand.nextDouble()*200, rand.nextDouble()*200,
+				38, 4, 0);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {
 			GameDs.organsLists.add(myorgans);
 		}
-		
 	}
 	
 	public String getData(){	// will be used for first message only

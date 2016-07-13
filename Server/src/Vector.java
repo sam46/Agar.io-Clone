@@ -1,12 +1,10 @@
 public class Vector {
-	
-	public double th ;
-	public double x,y;
-	public double mag;
-	public Vector normalized;
+	public double th, mag;
+	public double x, y;
+	private Vector normalized;
 	
 	private void calMag() {
-		mag = Math.sqrt( (x)*(x) + (y)*(y) );
+		mag = Math.sqrt(x*x + y*y);
 	}
 	
 	private void calTh() {
@@ -14,54 +12,52 @@ public class Vector {
 	}
 	
 	private void calCartesian() {
-		x =  (mag*Math.cos(th));
-		y =  (mag*Math.sin(th));
+		x =  mag*Math.cos(th);
+		y =  mag*Math.sin(th);
 	}
-	
+
+	private void calNormalized() {
+		normalized = new Vector(x/mag, y/mag);
+	}
+
 	public Vector(double dir ,double mag) {
-		th = dir;
+		this.th = dir;
 		this.mag = mag;
 		calCartesian();
 	}
 	
-	public Vector(Vector vec){	// copy ctor
+	public Vector(Vector vec) {
 		this(vec.th, vec.mag);
 	}
 
-	public Vector(double xi,double yi,double xf,double yf){
+	public Vector(double xi,double yi,double xf,double yf) {
 		x = xf-xi; y = yf-yi;
 		calMag();
 		calTh();
 	}
-	
-	public void invert(){
-		Scale(-1);
-		calMag();
-		calTh();
-		Normalize();
-	}
 
-	private void Normalize(){
-		calMag();
-		normalized = new Vector(x/mag, y/mag);
-	}
-
-	public void Scale(double c){
-		x = x*c;
-		y = y*c;
-		calMag();
-		calTh();
+	public void Scale(double c) {
+		x *= c;
+		y *= c;
+		mag *= c;
 	}
 	
-	public Vector getNormalized(){
-		Normalize();
+	public Vector getNormalized() {
+		calNormalized();
 		return normalized;
 	}
+
+	public void Normalize() {
+		Scale(1.0/mag);
+	}
+
+	public void add(Vector other) {
+		add(other.x, other.y);
+	}
 	
-	public void add(double X, double Y){
+	public void add(double X, double Y) {
 		this.x += X;
 		this.y += Y;
-		
 		calMag();
 		calTh();
 	}
