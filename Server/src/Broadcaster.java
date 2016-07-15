@@ -16,9 +16,10 @@ public class Broadcaster implements Runnable {
 			//List<WebSocket> tempList = new LinkedList<>();
 		
 			synchronized (GameDs.mLck) {
-				for (int i = 0; i < GameDs.msgBuf.size(); i++) 
+				//for (int i = 0; i < GameDs.msgBuf.size(); i++)
+				while(!GameDs.msgBuf.isEmpty())
+					data +=  GameDs.msgBuf.remove(0) + ";";		// separate each player/organ's data by ';'
 					//tempQueue.add(GameDs.msgBuf.remove(0));
-					data +=  GameDs.msgBuf.remove(0) + ";";
 			}
 			
 			//for (int i = 0; i < tempQueue.size(); i++) 
@@ -36,7 +37,7 @@ public class Broadcaster implements Runnable {
 				//conn.send(data);
 			
 			try {
-				Thread.sleep(60);		// TODO: tweak
+				Thread.sleep(1000/56);		// TODO: tweak/fix
 			} catch (InterruptedException e) {}
 			
 		}	// end while

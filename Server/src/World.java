@@ -31,11 +31,10 @@ public class World implements Runnable  {
 			for (int j = i+2; j < organsCopy.size(); j++) {
 			    GameObj p2 = organsCopy.get(j);
 				if(GameObj.intersect(p1, p2)) {	 
-					//   TODO: Handle collisions
+					// handle collisions...
 				}
 			}	
 		}
-	
 	}
 	*/
 	
@@ -44,16 +43,14 @@ public class World implements Runnable  {
 		
 	}
 	
-	// Send new data to msg buffer to be handled by the broadcasting thread
+	// Send new data to msg buffer to be handled by the broa	dcasting thread
 	private void dispatchToMsgBuf(){
 		synchronized (GameDs.mLck) {
-			int cur = -1;
-			for (List<Organ> orgList : organsListsCopy) {
+			GameDs.msgBuf.clear();		// drop messages that weren't sent. TODO: this may be unnecessary, since broadcaster will block till the buffer is empty
+			for (List<Organ> orgList : organsListsCopy)
 				for (Organ org : orgList)
-					GameDs.msgBuf.add(
-						//((org.owner!=cur) ? org.owner : "") + ","+org.getData()
-							org.owner + ","+ org.getData()	);
-			}
+					GameDs.msgBuf.add(org.getData());
+
 		}
 	}
 
@@ -138,7 +135,7 @@ public class World implements Runnable  {
 				break;
 			}
 
-			// FIX: curPlayer is null sometimes !!
+			// TODO: bug: curPlayer is null sometimes !!
 
 			// assert curPlayer ain't null
 			if(curPlayer == null )
@@ -159,15 +156,16 @@ public class World implements Runnable  {
 
 				curPlayer.get(i).vel = new Vector(ang, mag);
 				curPlayer.get(i).mpDirect = new Vector(0,0, input.xdir, input.ydir);
+				curPlayer.get(i).lastAck = input.seq;
 
 				if (input.type == 1)	// if this input was md
 					tempOrgans.add(curPlayer.get(i).split());
+
 			}
 
 			// add any newly created organs to this player's organs list
 			for (int i = 0; i < tempOrgans.size(); i++)
 				curPlayer.add(tempOrgans.get(i));
-
 		}
 
 	}
@@ -177,45 +175,39 @@ public class World implements Runnable  {
 		
 	/* Delta-timing variables */
 		lastTime = System.nanoTime();
-		final int times = 60;				// the physics (coords updates) should update 60 times a second
+		final int times = 56;				// the physics (coords updates) should update 60 times a second
 		double ns = 1000000000.0 / times;  	// the time till the next physics update in nano seconds  
 		double delta = 0;				
 		
 		while(true) {
 			copyOrgansList();		// oLck blocking
 			procInput();			// input buffer blocking
+			dispatchToMsgBuf();		// mLck blocking
 
 		    /* Delta-timing: guarantees consistent movements and updates regardless of the time each frame takes */
 		    long now = System.nanoTime();
-			displayFPS(now);
+			//displayFPS(now);
 			delta += (now - lastTime) / ns;  // detla += actual elapsed time / time required for 1 update
 		    lastTime = now;
-		    if(delta >= 1) { // if enough time has passed: update
 
-				if(!organsListsCopy.isEmpty()) {
-				//	System.out.println("pos: "+organsListsCopy.get(0).get(0).pos.x + ",  " + organsListsCopy.get(0).get(0).pos.y);
-					System.out.println("vel: "+organsListsCopy.get(0).get(0).vel.x + ",  " + organsListsCopy.get(0).get(0).vel.y);
-				}
+		    if(delta >= 1) { // if enough time has passed: update
 		    	for (List<Organ> li : organsListsCopy) {
 					for (Organ temp : li)
-						temp.update(1.0 / times);
+						temp.update(0.25*1.0 / times);
 					constrain(li);
 					calCM(li);
 				}
 
 				delta--;					
 		    }
-
-		    /* -------------------------------------------------------------------------------------------------- */
 			
 		   // orgorgCollision(times);
 		   // orgblobCollision();
-			dispatchToMsgBuf();		// mLck blocking
 
 			/*
 				TODO:
 				fix time stepping/FPS
-				currently server and client are out of sync
+				currently server and client are out of sync... ??
 
 			*/
 

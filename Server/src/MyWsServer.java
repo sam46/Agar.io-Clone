@@ -95,7 +95,8 @@ public class MyWsServer extends WebSocketServer {
 		
 		try {
 			uin = new Uinput( type, conn.hashCode(), Double.parseDouble(stok.nextToken()),
-				 Double.parseDouble(stok.nextToken()) );
+				 Double.parseDouble(stok.nextToken()),
+					Integer.parseInt(stok.nextToken()) );
 		} catch(Exception e){ 
 			e.printStackTrace();
 			System.exit(0);

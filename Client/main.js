@@ -5,7 +5,7 @@ var blobSize = 12,	// blob radius on screen
  	blobs = [];	// store positions of blobs
 
 /* Other variables */
-var players = [];
+//var players = [];
 var ip_address = "localhost", port = "8080";
 var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"];
 var wrdWidth = 2000*3, wrdHeight = 2000*3;				// world dimensions
@@ -17,6 +17,8 @@ var xshift, yshift;			// for translating the world to be in main player's perspe
 var batch_size = 30;		// how many user inputs to handle and send each frame  TODO: tweak
 var fps = [], _ind_ = 0;	// for showing fps
 
+var authState = null;		// the server's authoritative state of the mp. Will be used to overwrite the entirety of mp properties
+var pendingInputs = [], prediction = true, reconciliation = true;
 /*************************************************************************************************************************/
 function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.lock = false;		// prevent organs from going apart
@@ -25,7 +27,6 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.xspd = xSpd;
 	this.yspd = ySpd;
 	this.size = size;
-	this.authPos = [];			// authoritative positions
 	this.color = "blue";//colors[Math.floor((Math.random() * colors.length))];
 	// Easing variables
 	this.applySizeEase = false;
@@ -206,13 +207,13 @@ function Connect(){
 		// if this is the first msg:
 		if(fst_msg) {	
 			var init_data = String(e.data).split(',');
-			myid = parseInt(init_data[0]);
+			mp.pid = parseInt(init_data[0]);
 			mp.organs.push(new Organ(1,1,1,1,1));
-			mp.organs[0].x = parseDouble(init_data[1]);
-			mp.organs[0].y = parseDouble(init_data[2]); 
-			mp.organs[0].size = parseDouble(init_data[3]);
-			mp.organs[0].xspd = parseDouble(init_data[4]); 
-			mp.organs[0].yspd = parseDouble(init_data[5]); 
+			mp.organs[0].x = parseFloat(init_data[1]);
+			mp.organs[0].y = parseFloat(init_data[2]); 
+			mp.organs[0].size = parseFloat(init_data[3]);
+			mp.organs[0].xspd = parseFloat(init_data[4]); 
+			mp.organs[0].yspd = parseFloat(init_data[5]); 
 			mp.cmx = mp.organs[0].x;						
 			mp.cmy = mp.organs[0].y; 
 
@@ -221,24 +222,26 @@ function Connect(){
 						
 			ready = true;
 			lastTime = performance.now();
+			if(mp.organs[0].x == NaN){
+				ready = false;
+				while(true) console.log("WARNING: NULL");
+			}
+			return;
 		}
 		
 
-		// Code here is temporary, for quick testing: 
-
-		//if it's not the first msg:
-		var e_str = String(e.data);
-		var str_array = e_str.split(';');
+		// if it's not the first msg:
 		
+		/*
 		players = [];
 		for (var i=0; i<str_array.length; i++) {
 			if(str_array[i]=="") continue;
 
 			var plyr_data = str_array[i].split(',');
 			var tempPlayer = new Player(parseInt(plyr_data[0]));
-			tempPlayer.x = parseDouble(plyr_data[1]);
-			tempPlayer.y = parseDouble(plyr_data[2]);
-			tempPlayer.size = parseDouble(plyr_data[3]);
+			tempPlayer.x = parseFloat(plyr_data[1]);
+			tempPlayer.y = parseFloat(plyr_data[2]);
+			tempPlayer.size = parseFloat(plyr_data[3]);
 			// if this message is for main player:
 			//if(tempPlayer.pid == myid) { 			// TODO fix this part, multiple organs can share the same id. there shouldnt be a single x,y and size, but one for each organ
 			//	x = tempPlayer.x;
@@ -247,6 +250,46 @@ function Connect(){
 			//} 
 			// if it's not, update players[]
 			players.push(tempPlayer);
+		}
+		*/
+
+        
+        // authState has the same properties as mp. We'll fill it with the data we recieved
+        // TODO: implement this functionality with a better de/serialization mechanism
+		authState = null;
+		authState = new Object();
+		authState.organs = [];
+
+		var AllOrgs = String(e.data).split(';');		// organs/players are separated by ';'
+
+		for (var i=0; i < AllOrgs.length; i++) { 		// for each organ in the server's message:
+			// player/organs' properties are separated by ','
+			var orgData = AllOrgs[i].split(',');		
+
+			// add the ith organ to authState
+			var curOrg = new Organ( parseFloat(orgData[1]),
+				parseFloat(orgData[2]),
+				parseFloat(orgData[3]),
+				parseFloat(orgData[4]),
+				parseFloat(orgData[5])
+			);
+			curOrg.lock =  parseInt(orgData[6]) ? true : false; 
+			curOrg.applyPosEase = parseInt(orgData[7]) ? true : false; 
+			curOrg.applySizeEase =  parseInt(orgData[8]) ? true : false; 
+			curOrg.massDelta = parseFloat(orgData[9]);
+			curOrg.easeDist = parseFloat(orgData[10]);
+			curOrg.easex = parseFloat(orgData[11]);
+			curOrg.easey = parseFloat(orgData[12]);
+			authState.organs.push(curOrg);
+
+			// those properties are for the player, not for the organs, but for now the server appends them to each organ belonging to the player.
+			// they should really be added, sent and read just once though (instead of in a loop) to avoid redundancy
+			authState.pid = parseInt(orgData[0]);
+			authState.directX = parseFloat(orgData[13]);
+			authState.directY = parseFloat(orgData[14]);
+			authState.cmx = parseFloat(orgData[15]);
+			authState.cmy = parseFloat(orgData[16]);
+			authState.seq = parseInt(orgData[17]);
 		}
 
 	};
@@ -283,48 +326,104 @@ function Connect(){
 
 function send(input) {
 	if(input)
-		conn.send(input.inType+","+input.xdir+","+input.ydir);
+		conn.send(input.inType+","+input.xdir+","+input.ydir+","+input.seq);
 }
 
+function processServerMsg() {
+	if(authState == null) return;
+
+	// Overwrite mp's state by the authState we got from the server.
+	// The state includes all mp's properties and his organs' properties as well 
+
+	mp = null;
+	mp = new Player(authState.pid);
+	mp.organs = [];
+	mp.directX = authState.directX;
+	mp.directY = authState.directY;
+	mp.cmx = authState.cmx;
+	mp.cmy = authState.cmy;
+
+	// fill in mp's organs[]
+	for(var i=0; i< authState.organs.length; i++) {
+		var curOrg = authState.organs[i];
+
+		var temp = new Organ(curOrg.x, curOrg.y, curOrg.size, 
+			curOrg.xspd, curOrg.yspd);
+		temp.lock = curOrg.lock;
+		temp.applySizeEase = curOrg.applySizeEase;
+		temp.massDelta = curOrg.massDelta;
+		temp.applyPosEase = curOrg.applyPosEase;
+		temp.easeDist = curOrg.easeDist;
+		temp.easex = curOrg.easex;
+		temp.easey = curOrg.easey;
+
+		mp.organs.push(temp);
+	}
+
+	// Re-apply all inputs not processed by server yet
+	if(reconciliation) {
+		var i = 0;
+        while (i < pendingInputs.length) {
+            var input = pendingInputs[i];
+
+            if (input.seq <= authState.seq) {
+              // Already processed. Its effect is already taken into account into the world update we got from server, so we can drop it.
+              pendingInputs.splice(i, 1);
+            } else {
+              // Not processed by the server yet. Re-apply it.
+              applyInput(input);
+              i++;
+            }
+        }
+	}
+	else {		// if we're not reconciling, drop all stored inputs cuz we dont need them
+		pendingInput = [];
+	}
+
+	authState = null;
+}
 
 function run() {		// Main game-loop function
 	if(ready) {
 
-		var batchSize = batch_size;
+		processServerMsg();		// Set mp's state according to server's authoritative msg. Also do reconciliation if enabled.
+
+		var batchSize = batch_size; // multiple mouse inputs could be coming in a frame, so we have to process multiple per frame.
 		while(batchSize-- > 0 && inBuff.length > 0) {
-			var input = inBuff.shift();			// shift() removes the first element.... as in Queues
+			var input = inBuff.shift();			// shift() removes the first element... thus inBuffs functions as a queue
 			send(input);		
-			process(input);
+			pendingInputs.push(input);			// store inputs sent to server for later reconciliation
+			if(prediction) applyInput(input);	// only locally apply user input to mp if client-prediction is on
 		}
 		
-		var now = performance.now();
-		displayFPS(now);
-	    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update 
-		lastTime = now;
+		if(prediction) {	// only simulate physics locally if prediction is on
+			var now = performance.now();
+			//displayFPS(now);
+		    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update 
+			lastTime = now;
 
-	
-		if(delta >= 1) { 
-			// code here should run at times/second
-			for(var i=0; i<mp.organs.length; i++) 
-				mp.organs[i].update();
-			mp.constrain();	
-			mp.calCM();
-			delta--;
+			if(delta >= 1) { 
+				// code here should run at times/second
+				for(var i=0; i<mp.organs.length; i++) 
+					mp.organs[i].update();
+				mp.constrain();	
+				mp.calCM();
+				delta--;
+			}
 		}
 
+		/**Rendering**/
 		context.clearRect(0, 0, width, height);
 		xshift = mp.cmx - width/2;
 		yshift = mp.cmy - height/2; 
 		drawGrid();
 		drawBlobs();
 
-		
-		//draw mp
+		// draw mp
 		for(var i=0; i<mp.organs.length; i++) 
 			mp.organs[i].draw(context);
-		
 
-
+		/*
 		// for testing: draw server output
 		if(players.length!=0)
 		for(var i = 0; i < players.length; i++) {
@@ -333,6 +432,7 @@ function run() {		// Main game-loop function
 			context.fillStyle = "red";
 			context.fill();	
 		}
+		*/
 
 	}
 
@@ -350,19 +450,18 @@ function run() {		// Main game-loop function
 }	// end run()
 
 
-function process(input) {
+function applyInput(input) {
 	var tempOrgans = [];
 	for(var i=0; i < mp.organs.length; i++) {
 		// each orgnas will try to move towards the mouse pointer, but later when the organs are packed together, they'll follow CM direction
 		var xspd = mp.organs[i].xspd;
 		var yspd = mp.organs[i].yspd;
 		var mag = Math.sqrt(xspd*xspd + yspd*yspd);
-		var ang = Math.atan2( (input.ydir+height/2) - (mp.organs[i].y-yshift),			// the direction angle from the organ to the mouse location
-							  (input.xdir+width/2)  - (mp.organs[i].x -xshift)  );
+		var ang = Math.atan2( input.ydir - mp.organs[i].y + mp.cmy,			// the direction angle from the organ to the mouse location
+							  input.xdir - mp.organs[i].x + mp.cmx  );
 
 		mp.organs[i].xspd = Math.cos(ang) * mag;
 		mp.organs[i].yspd = Math.sin(ang) * mag;
-
 
 		mp.directX = input.xdir;
 		mp.directY = input.ydir;
@@ -409,7 +508,7 @@ function generateBlobs() {
 	var available_area = world_area;// - size;
 	/* blob_count * blobSize / available_area = density  */
 	var blob_count = (blobDensity * available_area) / blobSize;
-	//console.log(blob_count);
+	console.log(blob_count);
 	blobs = [];
 	for (var i = 0; i < blob_count; i++) {
 		//var pos_mag = size + 10 - (wrdWidth/2) + Math.random()*wrdWidth ;  

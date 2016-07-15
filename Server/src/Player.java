@@ -20,7 +20,7 @@ public class Player {
 		
 		myorgans = new ArrayList<Organ>();
 		Organ temp = new Organ(pid, rand.nextDouble()*200, rand.nextDouble()*200,
-				38, 4, 0);
+				130, 6, 3);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {

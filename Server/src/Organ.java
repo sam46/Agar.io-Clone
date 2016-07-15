@@ -4,10 +4,11 @@
 *******************************************************/
 
 public class Organ extends GameObj {
-	int owner;
+	public int lastAck = -1;		// last acknowledged/processed input
+	public int owner;				// the pid of the player owning this organ
 	public boolean lock = false;
-	public Vector mpDirect;
-	public Vector  mpCM;
+	public Vector mpDirect;			// player's direction
+	public Vector  mpCM;			// player's CM
 	/* Easing variables */
 	private static final double ease_step = 0.5, ease_spd = 60;		// control the speed of the easing and how many frames it takes to finish
 	private double easeDist,			// how far will the organ go when launched
@@ -22,6 +23,7 @@ public class Organ extends GameObj {
 		this.mpCM = new Vector(0,0, x, y);
 		this.mpDirect = new Vector(0,0, 0,0);
 		this.size = size;
+		this.easeVec = new Vector(0,0,0,0);
 	}
 	
 	@Override
@@ -71,17 +73,11 @@ public class Organ extends GameObj {
 	public void move(double dt) {
 		pos.add(vel.x, vel.y);
 				
-		// teleport to the other side if beyond world space
+		//teleport to the other side if beyond world space
 		//if(pos.x>3000) pos.x = -3000;
 		//else if (pos.x<-3000) pos.x = 3000;
 		//if(pos.y>3000) pos.y = -3000;
 		//else if (pos.y<-3000) pos.y = 3000;
-		
-		
-		/*System.out.println(owner);
-		System.out.println("\tspeed: "+speed.x+"  "+speed.y);
-		System.out.println("\tpos:   "+pos.x+"  "+pos.y);
-		System.out.println("----------------------");*/
 	}
 
 	public Organ split(){
@@ -92,11 +88,30 @@ public class Organ extends GameObj {
 		double norm = Math.sqrt((org2.vel.x*org2.vel.x) + (org2.vel.y*org2.vel.y));
 		org2.easePos(new Vector(0,0, org2.vel.x/norm, org2.vel.y/norm));
 
+		org2.lastAck = this.lastAck;
 		return org2;
 	}
-	
+
+	// TODO: implement this functionality with a better de/serialization mechanism
 	public  String getData(){
-		return pos.x+","+pos.y+","+size;
+		return  owner+","						 // 0
+				+pos.x+","						 // 1
+				+pos.y+","						 // 2
+				+size + ","						 // 3
+				+vel.x+","						 // 4
+				+vel.y+","					     // 5
+				+(lock ? "1":"0")+","			 // 6
+				+(applyPosEase ? "1":"0")+","	 // 7
+				+(applySizeEase ?"1":"0")+","	 // 8
+				+massDelta+","					 // 9
+				+easeDist+","					 // 10
+				+easeVec.x+","					 // 11
+				+easeVec.y+","					 // 12
+				+mpDirect.x+","					 // 13
+				+mpDirect.y+"," 				 // 14
+				+mpCM.x+","						 // 15
+				+mpCM.y+","						 // 16
+				+lastAck;						 // 17
 	}
 	
 }
