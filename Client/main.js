@@ -290,6 +290,7 @@ function Connect(){
 			authState.cmx = parseFloat(orgData[15]);
 			authState.cmy = parseFloat(orgData[16]);
 			authState.seq = parseInt(orgData[17]);
+
 		}
 
 	};
@@ -386,6 +387,7 @@ function processServerMsg() {
 function run() {		// Main game-loop function
 	if(ready) {
 
+	
 		processServerMsg();		// Set mp's state according to server's authoritative msg. Also do reconciliation if enabled.
 
 		var batchSize = batch_size; // multiple mouse inputs could be coming in a frame, so we have to process multiple per frame.
@@ -412,6 +414,7 @@ function run() {		// Main game-loop function
 			}
 		}
 
+	
 		/**Rendering**/
 		context.clearRect(0, 0, width, height);
 		xshift = mp.cmx - width/2;
@@ -476,7 +479,7 @@ function applyInput(input) {
 }	// end process()
 
 function drawGrid() {
-	var maxX = wrdWidth/2, maxY = wrdHeight/2;	
+	/*var maxX = wrdWidth/2, maxY = wrdHeight/2;	
 	var ulx = 2 -xshift -maxX,			// upleft
 		uly = 2 -yshift- maxY,
 		urx = wrdWidth -xshift-maxX,	// upright
@@ -501,6 +504,50 @@ function drawGrid() {
 	context.moveTo(drx,dry);
 	context.lineTo(dlx,dly);
 	context.stroke();
+*/
+
+	var scl = 50;	// the distance between grid lines
+
+	var nHor = Math.floor(width/scl);	// how many vertical lines can we fit in the window
+	var nVer = Math.floor(height/scl);	// how many horizontal lines can we fit.
+
+	var offX = width % scl;		// any left over space horizontally
+	var offY = height % scl;	// any left over space vertically
+
+
+	
+	context.beginPath();
+	context.strokeStyle = '#99bbff';
+	context.lineWidth = 1;
+
+	// draw vertical lines:
+	for(var i = 0; i <= nHor; i++){		
+		// X % m
+		// to extend the domain of X to include negative integers,
+		// i came up with this mod function:   ( m + (X%m) ) % m
+		// not sure if there's a better way.
+		// In our case, X is width + scl - offX,  and  q is (i*scl - xshift)
+
+		// when lines go off the visible area, wrap around
+		var m = width + (scl - offX);		// when will the line wrap around?  when it goes off the visible area by scl - offX
+		var X = (m + ((i*scl - xshift)% m)) % m; 
+
+		context.moveTo(X, 0);
+		context.lineTo(X, height);
+	}	
+	
+	// same procedure for drawing horizontal lines:
+	for(var i = 0; i <= nVer; i++) {
+		var m = height + scl - offY;
+		var Y = (m + ((i*scl - yshift)% m)) % m; 
+		
+		context.moveTo(0,     Y);
+		context.lineTo(width, Y);
+	}
+
+	context.stroke();
+	context.closePath();
+	
 }	// end drawGrid();
 
 function generateBlobs() {

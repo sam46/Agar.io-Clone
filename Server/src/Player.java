@@ -32,7 +32,7 @@ public class Player {
 		return ""+conn.hashCode()+","+myorgans.get(0).pos.x+","+myorgans.get(0).pos.y+","+
 				myorgans.get(0).size+","+myorgans.get(0).vel.x+","+myorgans.get(0).vel.y;
 	}
-	
+
 	public void send(String data){
 		conn.send(data);
 	}

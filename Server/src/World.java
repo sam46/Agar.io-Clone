@@ -172,8 +172,7 @@ public class World implements Runnable  {
 
 	@Override
 	public void run() {
-		
-	/* Delta-timing variables */
+
 		lastTime = System.nanoTime();
 		final int times = 56;				// the physics (coords updates) should update 60 times a second
 		double ns = 1000000000.0 / times;  	// the time till the next physics update in nano seconds  
@@ -193,7 +192,7 @@ public class World implements Runnable  {
 		    if(delta >= 1) { // if enough time has passed: update
 		    	for (List<Organ> li : organsListsCopy) {
 					for (Organ temp : li)
-						temp.update(0.25*1.0 / times);
+						temp.update(0.3*1.0 / times);
 					constrain(li);
 					calCM(li);
 				}
@@ -208,16 +207,14 @@ public class World implements Runnable  {
 				TODO:
 				fix time stepping/FPS
 				currently server and client are out of sync... ??
-
 			*/
 
-			try { Thread.sleep(1000/times); }
+			try{ Thread.sleep( (long)(lastTime - System.nanoTime() + ns)/1000000 ); }
 			catch (InterruptedException e) { e.printStackTrace(); }
 			
 		}	// end while		
 		
 	} // end run()
-
 
 /********************************* Helpers *********************************/
 
