@@ -87,11 +87,20 @@ Organ.prototype.split = function() {
 	return org2;
 };
 
-Organ.prototype.draw = function (context) {
+Organ.prototype.draw = function (context, name) {
 	context.beginPath();
 	context.arc(this.x - xshift, this.y - yshift, this.size, 0,2*Math.PI);
 	context.fillStyle = this.color;
 	context.fill();		
+ 
+ 	// draw player name
+ 	context.textAlign = 'center';
+    context.font = '30px sans-serif';
+	context.strokeStyle = 'black';
+ 	context.lineWidth = 3;
+	context.strokeText(name, this.x-xshift, this.y-yshift+10);
+    context.fillStyle = 'white';
+	context.fillText(name, this.x-xshift, this.y-yshift+10);
 };
 
 /************************************************/
@@ -182,17 +191,26 @@ window.onload = function() {
 		height = canvas.height = window.innerHeight;
 	var ready = false;
 	var mp = new Player(-1);		// main player
+	var wheel = 0;
+	var panel = document.getElementById("start-panel"),
+		panel_style = window.getComputedStyle(panel),
+	    panelWstr = panel_style.getPropertyValue("width"),
+	    panelHstr = panel_style.getPropertyValue("height"),
+	    panelW = parseInt(panelWstr.substr(0, panelWstr.length-2));
+	    panelH = parseInt(panelHstr.substr(0, panelHstr.length-2));
+		panel_col = 20;
+	panel.style.top = ""+(height-panelH)/2 +"px";
+	panel.style.left = ""+(width-panelW)/2 + "px";
+
+    if ("WebSocket" in window) console.log("WebSockets Supported.");
+    else console.log("Browser doesn't support WebSocket");
 
 
-    if ("WebSocket" in window)
-    	 ;
-  	else console.log("Browser doesn't support WebSocket");
 	generateBlobs();
 	Connect();
 	initFPS();
-	var last  = performance.now();
 	run();
-	
+
 
 function Connect(){
 	conn = new WebSocket('ws://'+ip_address+':'+port);
@@ -219,13 +237,9 @@ function Connect(){
 
 			//console.log(parseFloat(init_data[1])+","+parseFloat(init_data[2]));
 			fst_msg = false;
-						
+			panel.style.display = "none";		
 			ready = true;
 			lastTime = performance.now();
-			if(mp.organs[0].x == NaN){
-				ready = false;
-				while(true) console.log("WARNING: NULL");
-			}
 			return;
 		}
 		
@@ -293,7 +307,7 @@ function Connect(){
 
 		}
 
-	};
+	};	// end onmessage() ;
 
 	conn.onclose = function(e) {
 		ready = false;
@@ -384,10 +398,10 @@ function processServerMsg() {
 	authState = null;
 }
 
+
 function run() {		// Main game-loop function
 	if(ready) {
 
-	
 		processServerMsg();		// Set mp's state according to server's authoritative msg. Also do reconciliation if enabled.
 
 		var batchSize = batch_size; // multiple mouse inputs could be coming in a frame, so we have to process multiple per frame.
@@ -414,7 +428,6 @@ function run() {		// Main game-loop function
 			}
 		}
 
-	
 		/**Rendering**/
 		context.clearRect(0, 0, width, height);
 		xshift = mp.cmx - width/2;
@@ -424,7 +437,7 @@ function run() {		// Main game-loop function
 
 		// draw mp
 		for(var i=0; i<mp.organs.length; i++) 
-			mp.organs[i].draw(context);
+			mp.organs[i].draw(context,"Player One");
 
 		/*
 		// for testing: draw server output
@@ -436,7 +449,7 @@ function run() {		// Main game-loop function
 			context.fill();	
 		}
 		*/
-
+		
 	}
 
 	else {	// if not ready	
@@ -446,7 +459,8 @@ function run() {		// Main game-loop function
         context.textAlign = 'center';
         context.fillStyle = '#FFFFFF';
         context.font = 'bold 30px sans-serif';
-		context.fillText('Connecting to server...', width/2, height/2);
+		context.fillText('Connecting to server....', width/2, height/2);
+		panel.style.display = "block";
 	}
 
 	requestAnimationFrame(run);
@@ -514,8 +528,6 @@ function drawGrid() {
 	var offX = width % scl;		// any left over space horizontally
 	var offY = height % scl;	// any left over space vertically
 
-
-	
 	context.beginPath();
 	context.strokeStyle = '#99bbff';
 	context.lineWidth = 1;
@@ -555,7 +567,7 @@ function generateBlobs() {
 	var available_area = world_area;// - size;
 	/* blob_count * blobSize / available_area = density  */
 	var blob_count = (blobDensity * available_area) / blobSize;
-	console.log(blob_count);
+	//console.log(blob_count);
 	blobs = [];
 	for (var i = 0; i < blob_count; i++) {
 		//var pos_mag = size + 10 - (wrdWidth/2) + Math.random()*wrdWidth ;  
@@ -617,14 +629,15 @@ function displayFPS(now){
 
 /* Helper Functions */
 
-function sizeToSpd(sz) {
-		return sz/10;
-}
-
 function distSq(x1,y1,x2,y2){
 	return (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
 }
 
+/*
+
+function sizeToSpd(sz) {
+		return sz/10;
+}
 
 function compUV(ux,uy,vx,vy){		// component of u along v
 	var udotv = ux*vx + uy*vy;
@@ -635,3 +648,24 @@ function compUV(ux,uy,vx,vy){		// component of u along v
 		ycomp : vy*scaler
 	};
 }
+
+
+	function showPanel() {
+		if(ready) panel.style.display = "none";
+		//panel.style.background = "rgba("+panel_col+","+panel_col+","+panel_col+", 0.85)";
+		else panel.style.display = "block";
+	}
+
+	window.onkeyup = function(e) {
+	   var key = e.keyCode ? e.keyCode : e.which;
+	   if (key == 83) {
+	       ;
+	   }
+	}
+	document.body.addEventListener("wheel", function(WheelEvent) {
+		wheel += -WheelEvent.deltaY/100;
+		console.log(wheel)
+		panel_col = 5*Math.floor(wheel);
+		panel.style.background = "rgba("+panel_col+","+panel_col+","+panel_col+", 0.85)";
+	});
+*/
