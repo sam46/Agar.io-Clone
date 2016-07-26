@@ -7,10 +7,11 @@ Server-Client communication is done using [web sockets](https://developer.mozill
 
 ##### STILL A WORK IN PROGRESS!!
 
-#### Check out the local demo as the full server-client code is laggy 
+#### Check out the local browser-only demo as the full server-client code is laggy 
 due to it being in the middle of an upgrade.
 
 #### TODO List
+- [ ] Fixing time-stepping on server and clients
 - [ ] Handling blob generation and synchronization across clients
 - [ ] Collision Detection
 - [x] Porting physics to Java on the server 
@@ -20,9 +21,8 @@ due to it being in the middle of an upgrade.
 - [ ] Tweaking input processing and buffering across threads
 - [ ] Optimization for cpu-heavy code
 - [ ] Creating a pre-game panel for preliminary settings and player name input
-- [ ] testing (especially for floatting point build up errors and thread synchronization)
+- [ ] testing java mulithreading for potential concurrency flaws
 - [ ] Splitting upon colliding into viruses
-- [ ] Fixing time-stepping on server and clients
 
 
 This project uses a Java library by TooTallNate:
