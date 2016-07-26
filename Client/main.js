@@ -15,7 +15,7 @@ var ease_step = 0.45, ease_spd = 10;
 var lastTime, times = 56, ms = 1000.0/times, delta = 0.0;		// for delta-timing and consistent physics
 var xshift, yshift;			// for translating the world to be in main player's perspective
 var batch_size = 30;		// how many user inputs to handle and send each frame  TODO: tweak
-var fps = [], _ind_ = 0;	// for showing fps
+var fps_arr = [], _ind_ = 0, fps;	// for showing fps
 
 var authState = null;		// the server's authoritative state of the mp. Will be used to overwrite the entirety of mp properties
 var pendingInputs = [], prediction = true, reconciliation = true;
@@ -184,7 +184,7 @@ function Point (x,y,col) {
 
 /*************************************************************************************************************************/
 
-window.onload = function() {
+window.onload = function() { 
 	var canvas = document.getElementById("canvas"),
 		context = canvas.getContext("2d"),
 		width = canvas.width = window.innerWidth,
@@ -192,24 +192,31 @@ window.onload = function() {
 	var ready = false;
 	var mp = new Player(-1);		// main player
 	var wheel = 0;
-	var panel = document.getElementById("start-panel"),
-		panel_style = window.getComputedStyle(panel),
-	    panelWstr = panel_style.getPropertyValue("width"),
-	    panelHstr = panel_style.getPropertyValue("height"),
-	    panelW = parseInt(panelWstr.substr(0, panelWstr.length-2));
-	    panelH = parseInt(panelHstr.substr(0, panelHstr.length-2));
-		panel_col = 20;
-	panel.style.top = ""+(height-panelH)/2 +"px";
-	panel.style.left = ""+(width-panelW)/2 + "px";
+	var infoPan = new InfoPan();
+	var spanel = document.getElementById("start-panel"),
+		spanel_style = window.getComputedStyle(spanel),
+	    spanelWstr = spanel_style.getPropertyValue("width"),
+	    spanelHstr = spanel_style.getPropertyValue("height"),
+	    spanelW = parseInt(spanelWstr.substr(0, spanelWstr.length-2));
+	    spanelH = parseInt(spanelHstr.substr(0, spanelHstr.length-2));
+		spanel_col = 20;
+	spanel.style.top = ""+(height-spanelH)/2 +"px";
+	spanel.style.left = ""+(width-spanelW)/2 + "px";
 
     if ("WebSocket" in window) console.log("WebSockets Supported.");
     else console.log("Browser doesn't support WebSocket");
-
 
 	generateBlobs();
 	Connect();
 	initFPS();
 	run();
+
+	window.onresize = function(event) {
+		// update stuff that depend on the window size
+	    width = canvas.width = window.innerWidth;
+		height = canvas.height = window.innerHeight;
+	    infoPan.refresh();
+	};
 
 
 function Connect(){
@@ -237,7 +244,8 @@ function Connect(){
 
 			//console.log(parseFloat(init_data[1])+","+parseFloat(init_data[2]));
 			fst_msg = false;
-			panel.style.display = "none";		
+			spanel.style.display = "none";	
+			infoPan.show();	
 			ready = true;
 			lastTime = performance.now();
 			return;
@@ -414,7 +422,7 @@ function run() {		// Main game-loop function
 		
 		if(prediction) {	// only simulate physics locally if prediction is on
 			var now = performance.now();
-			//displayFPS(now);
+			calcFPS(now);
 		    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update 
 			lastTime = now;
 
@@ -439,6 +447,18 @@ function run() {		// Main game-loop function
 		for(var i=0; i<mp.organs.length; i++) 
 			mp.organs[i].draw(context,"Player One");
 
+		// draw info on debug panel
+		infoPan.updateData({
+			cmx: mp.cmx,
+			cmy: mp.cmy,
+			num:  mp.organs.length
+		});
+
+		context.textAlign = 'left';
+	    context.font = '25px sans-serif';
+	    context.fillStyle = 'gray';
+		context.fillText(fps, 25, 30);
+
 		/*
 		// for testing: draw server output
 		if(players.length!=0)
@@ -449,7 +469,6 @@ function run() {		// Main game-loop function
 			context.fill();	
 		}
 		*/
-		
 	}
 
 	else {	// if not ready	
@@ -460,7 +479,7 @@ function run() {		// Main game-loop function
         context.fillStyle = '#FFFFFF';
         context.font = 'bold 30px sans-serif';
 		context.fillText('Connecting to server....', width/2, height/2);
-		panel.style.display = "block";
+		spanel.style.display = "block";
 	}
 
 	requestAnimationFrame(run);
@@ -606,21 +625,22 @@ function drawCircle(x,y,rad,sides,col,start) {
 }
 
 function initFPS() {
-	for(var i=0; i < 10; i++) fps.push(0.0);
+	for(var i=0; i < 10; i++) fps_arr.push(0.0);
 }
 
-function displayFPS(now){
+function calcFPS(now){
 	function calAVG() {
 		   var count=0.0;
-		   for (var i=fps.length; i--;) 
-		     count+=fps[i];
+		   for (var i=fps_arr.length; i--;) 
+		     count+=fps_arr[i];
 		   
-		   return Math.round(count/fps.length);
+		   return Math.round(count/fps_arr.length);
 	}
 
-	fps[_ind_%10] = 1000.0/(now-lastTime);
+	fps_arr[_ind_%10] = 1000.0/(now-lastTime);
 	_ind_++;
-	console.log(calAVG());
+
+	fps = calAVG();
 }
 
 }	// end window.onload()
