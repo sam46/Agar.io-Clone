@@ -2,14 +2,17 @@
 
 A replica of the real-time multiplayer game [agar.io](http://agar.io/)
 
-The server is written in Java. Client code only utilizes HTML5 and javascript.
+The server is in Java. Client code utilizes HTML5 and Jquery.
 Server-Client communication is done using [web sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 
 ##### STILL A WORK IN PROGRESS!!
 
+#### Check out the local demo as the full server-client code is laggy 
+due to it being in the middle of an upgrade.
+
 #### TODO List
 - [ ] Handling blob generation and synchronization across clients
-- [ ] Better Collision Detection between game objects (preferably parallelizable)
+- [ ] Collision Detection
 - [x] Porting physics to Java on the server 
 - [ ] Implementing [Source startegy](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking) for client-server communication. Better explained [here](http://www.gabrielgambetta.com/fpm1.html)
 - [ ] Replacing string data communication between server and clients with other formats/encoding. ( JSON or raw binary? ) 
