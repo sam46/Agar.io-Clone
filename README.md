@@ -7,8 +7,7 @@ Server-Client communication is done using [web sockets](https://developer.mozill
 
 ##### STILL A WORK IN PROGRESS!!
 
-#### Check out the local browser-only demo as the full server-client code is laggy 
-due to it being in the middle of an upgrade.
+#### Check out the local browser-only demo, as the full server-client code is laggy due to it being in the middle of an upgrade.
 
 #### TODO List
 - [ ] Fixing time-stepping on server and clients
