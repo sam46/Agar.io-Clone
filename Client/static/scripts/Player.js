@@ -5,7 +5,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.xspd = xSpd;
 	this.yspd = ySpd;
 	this.size = size;
-	this.color = "blue";//colors[Math.floor((Math.random() * colors.length))];
+	this.color = "blue"; //colors[Math.floor((Math.random() * colors.length))];
 	// Easing variables
 	this.applySizeEase = false;
 	this.massDelta = 0.0;
@@ -24,7 +24,7 @@ Organ.prototype.update = function () {
 	this.move();
 
 	var dt = 1.0/times;
-	if(this.applyPosEase){	
+	if(this.applyPosEase){
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
 		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
 		this.easeDist -= ease_spd*dt*ease_step*this.easeDist;
@@ -33,7 +33,7 @@ Organ.prototype.update = function () {
 			this.lock = true;
 		}
 	}
-	
+
 	if(this.applySizeEase){
 		this.size += ease_spd*dt*this.massDelta*ease_step;
 		this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
@@ -68,15 +68,15 @@ Organ.prototype.draw = function (context, name) {
 	context.beginPath();
 	context.arc(this.x - xshift, this.y - yshift, this.size, 0,2*Math.PI);
 	context.fillStyle = this.color;
-	context.fill();		
- 
+	context.fill();
+
  	// draw player name
  	context.textAlign = 'center';
-    context.font = '30px sans-serif';
+  context.font = '30px sans-serif';
 	context.strokeStyle = 'black';
  	context.lineWidth = 3;
 	context.strokeText(name, this.x-xshift, this.y-yshift+10);
-    context.fillStyle = 'white';
+  context.fillStyle = 'white';
 	context.fillText(name, this.x-xshift, this.y-yshift+10);
 };
 
@@ -112,10 +112,10 @@ Player.prototype.constrain = function(){	// constrain organs movements
 			var radSum = org2.size+org1.size;		// sum of radii
 			var distSqr = distSq(org1.x, org1.y, org2.x, org2.y);	// distance between centers squared
 
-			if(radSum*radSum + 0.5 > distSqr) {		// if there's an intersection 
+			if(radSum*radSum + 0.5 > distSqr) {		// if there's an intersection
 
 				var interleave = radSum - Math.sqrt(distSqr);	// how much are the two circles intersecting?  r1 + r2 - distnace
-				
+
 				// create a vector o12 going from org1 to org2
 				// push the two organs apart, push org2 in the direction of the o12, and org1 in the opposite direction of o12
 				var o12x = org2.x - org1.x,	o12y = org2.y - org1.y;
