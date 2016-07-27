@@ -28,7 +28,7 @@ window.onload = function() {
 	spanel.style.left = ""+(width-spanelW)/2 + "px";
 
     if ("WebSocket" in window) console.log("WebSockets Supported.");
-    else console.log("Browser doesn't support WebSocket");
+    else console.log("Browser doesn't support WebSockets");
 
 	generateBlobs();
 	Connect();
@@ -284,6 +284,9 @@ function run() {		// Main game-loop function
 }	// end run()
 
 function applyInput(input) {
+	mp.directX = input.xdir;
+	mp.directY = input.ydir;
+	
 	var tempOrgans = [];
 	for(var i=0; i < mp.organs.length; i++) {
 		// each orgnas will try to move towards the mouse pointer, but later when the organs are packed together, they'll follow CM direction
@@ -295,9 +298,6 @@ function applyInput(input) {
 
 		mp.organs[i].xspd = Math.cos(ang) * mag;
 		mp.organs[i].yspd = Math.sin(ang) * mag;
-
-		mp.directX = input.xdir;
-		mp.directY = input.ydir;
 
 		if(input.inType == 'md')
 			tempOrgans.push(mp.organs[i].split());

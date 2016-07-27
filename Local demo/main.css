@@ -1,0 +1,13 @@
+html, body {
+  margin: 0px;
+}
+
+canvas {
+  display: block;
+}
+
+p {
+  color:  #d4ffb4 ;
+  padding-left: 20px;
+  font-size: 135%;
+}

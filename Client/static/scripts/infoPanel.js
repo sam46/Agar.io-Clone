@@ -1,16 +1,12 @@
 function InfoPan(X,Y,Wid,Hei){
-	this.panel = document.createElement('div');
-	this.panel.id = "info";
-
-	document.getElementsByTagName('body')[0].appendChild(this.panel);
-
-	this.$info = $('info'); // We do this for performance, each time you do $() is searched the domain
-	this.$centered = $('centered'); // We're using this div a lot so we should cache it to memory
-
-	// using raw javascript to access properties
-	this.set(X,Y,Wid,Hei);	// set variable properties
-
-	// set propreties that won't change
+	var self = this;
+	this.$info = $('<div id = "info" />').appendTo('body');		// <div /> will create a new div element
+ 	this.set(X,Y,Wid,Hei);
+ 	
+ 	this.$info.append('<h1 class="centered"> Debug Menu </h1> <br />');
+  	this.$dataDiv = $('<div id = "data"/>').appendTo(this.$info)
+  	this.$dataDiv.html('<p/><p/><p/>');
+  	this.data = this.$dataDiv.children().toArray();
 	this.$info.css({
 		'background': 'rgb(35, 35, 35)',
 		'opacity': '0.65',
@@ -18,46 +14,43 @@ function InfoPan(X,Y,Wid,Hei){
 		'position': 'fixed',
 		'display': 'none'
 	});
-
-
 	this.$info.mouseenter(function() {
-		$(this).fadeTo('fast', 0.75);		// 'this' here refers to the object return by $(), it's different from the 'this' outside
-		this.$centered.css('text-shadow', '0 0 3px #D92731');
+		$(this).fadeTo('fast', 0.75);		// 'this' here refers to $info
+		self.$centered.css('text-shadow', '0 0 3px #D92731');		// to access outer scope's data mebmer $centered we need a reference
 	});
-
-  this.$info.mouseleave( function() {
-      $(this).fadeTo('fast', 0.65);
-      this.$centered.css('text-shadow', 'none');
-  });
-  this.$info.append('<h1 class="centered"> Debug Menu </h1> <br />');
-  this.$centered.css({
-  					'text-align': 'center',
-  					'font': 'bold solid',
-  					'color': '#b0b0ff'//'#F92672'
-  });
-  this.$info.append('<div id = "data"><p/><p/><p/></div>');
+  	this.$info.mouseleave( function() {
+    	$(this).fadeTo('fast', 0.65);
+     	self.$centered.css('text-shadow', 'none');
+ 	});
+ 	
+ 	this.$centered = $('.centered'); // We're using this div a lot so we should cache it to memory
+ 	this.$centered.css({
+  		'text-align': 'center',
+  		'font': 'bold solid',
+  		'color': '#b0b0ff'//'#F92672'
+  	});
 }
 
 InfoPan.prototype.set = function(X,Y,Wid,Hei){
 	// get canvas size
 	this.canvasW = $('canvas').width();
-	this.canvasH = $("canvas").height();
+	this.canvasH = $('canvas').height();
 
 	// set the position and size of the panel
 	this.w = Wid || Math.floor(this.canvasW*0.13);
 	this.h = Hei || Math.floor(this.canvasH*0.4);
 	this.x = X || this.canvasW - this.w - 5;
 	this.y = Y || 3;
-  this.$info.css({
+  	this.$info.css({
 		// forced string conversion
-		'width': Math.floor(this.h) + "px",
-		'height': Math.floor(this.y) + "px",
+		'width': Math.floor(this.w) + "px",
+		'height': Math.floor(this.h) + "px",
 		'top': Math.floor(this.y) + "px",
 		'left': Math.floor(this.x) + "px"
 	});
 }
 
-InfoPan.prototype.setLoc = function(X,W){
+InfoPan.prototype.setLoc = function(X,Y){
 	this.x = X;
 	this.y = Y;
 	this.$info.css({
@@ -67,7 +60,7 @@ InfoPan.prototype.setLoc = function(X,W){
 }
 
 InfoPan.prototype.refresh = function() {
-   this.set();		// since no args are passed, the canvas size will be used
+  	this.set();		// since no args are passed, the canvas size will be used
 }
 
 InfoPan.prototype.show = function(){
