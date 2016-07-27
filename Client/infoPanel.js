@@ -71,7 +71,7 @@ InfoPan.prototype.hide = function(){
 
 InfoPan.prototype.updateData = function(data) {
 	// draw data on the panel
-	$('#data p:nth-child(1)').html('cmx: '+data.cmx);
-	$('#data p:nth-child(2)').html('cmy: '+data.cmy);
-	$('#data p:nth-child(3)').html('Orgs#: '+data.num);
+	$('#data p:nth-child(1)').html('cmx: '+ Math.floor(data.cmx*100)/100.0);
+	$('#data p:nth-child(2)').html('cmy: '+ Math.floor(data.cmy*100)/100.0);
+	$('#data p:nth-child(3)').html('Orgs#: '+ data.num);
 }
