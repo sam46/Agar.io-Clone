@@ -9,6 +9,10 @@ Server-Client communication is done using [web sockets](https://developer.mozill
 
 #### Check out the local browser-only demo, as the full server-client code is laggy due to it being in the middle of an upgrade.
 
+#### Building
+
+To run the server, build the files in the src folder, and include the jar file in your project dependencies
+
 #### TODO List
 - [ ] Fixing time-stepping on server and clients
 - [ ] Handling blob generation and synchronization across clients
