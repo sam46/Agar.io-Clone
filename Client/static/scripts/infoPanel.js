@@ -3,9 +3,9 @@ function InfoPan(X,Y,Wid,Hei){
 	this.$info = $('<div id = "info" />').appendTo('body');		// <div /> will create a new div element
  	this.set(X,Y,Wid,Hei);
  	
- 	this.$info.append('<h1 class="centered"> Debug Menu </h1> <br />');
+ 	this.$info.append('<h1 class="centered"> Debug Menu </h1>');
   	this.$dataDiv = $('<div id = "data"/>').appendTo(this.$info)
-  	this.$dataDiv.html('<p/><p/><p/>');
+  	this.$dataDiv.html('<p/><p/><p/><p/>');
   	this.data = this.$dataDiv.children().toArray();
 	this.$info.css({
 		'background': 'rgb(35, 35, 35)',
@@ -37,7 +37,7 @@ InfoPan.prototype.set = function(X,Y,Wid,Hei){
 	this.canvasH = $('canvas').height();
 
 	// set the position and size of the panel
-	this.w = Wid || Math.floor(this.canvasW*0.13);
+	this.w = Wid || Math.floor(this.canvasW*0.17);
 	this.h = Hei || Math.floor(this.canvasH*0.4);
 	this.x = X || this.canvasW - this.w - 5;
 	this.y = Y || 3;
@@ -73,7 +73,9 @@ InfoPan.prototype.hide = function(){
 
 InfoPan.prototype.updateData = function(data) {
 	// draw data on the panel
-	$('#data p:nth-child(1)').html('cmx: '+ Math.floor(data.cmx*100)/100.0);
-	$('#data p:nth-child(2)').html('cmy: '+ Math.floor(data.cmy*100)/100.0);
-	$('#data p:nth-child(3)').html('Orgs#: '+ data.num);
+	$('#data p:nth-child(1)').html('Frame '+ data.frm);
+	$('#data p:nth-child(2)').html('Server: ('+ Math.floor(data.cmx1*10)/10 + ", "+
+		Math.floor(data.cmy1*10)/10 +")");
+	$('#data p:nth-child(3)').html('Client: ('+ Math.floor(data.cmx2*10)/10 + ", "+
+		Math.floor(data.cmy2*10)/10 +")");
 }

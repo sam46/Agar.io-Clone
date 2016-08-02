@@ -13,9 +13,11 @@ let ip_address = "localhost", port = "8080",
     inSeq = 0, inBuff = [],
     ease_step = 0.45, ease_spd = 10,
     lastTime, times = 56, ms = 1000.0/times, delta = 0.0,		// for delta-timing and consistent physics
-    xshift, yshift,     		// for translating the world to be in main player's perspective
-    batch_size = 30,		// how many user inputs to handle and send each frame  TODO: tweak
+    xshift, yshift,     	      // for translating the world to be in main player's perspective
+    batch_size = 30,		      // how many user inputs to handle and send each frame  TODO: tweak
     fps_arr = [], _ind_ = 0, fps;	// for showing fps
 
-let authState = null;		// the server's authoritative state of the mp. Will be used to overwrite the entirety of mp properties
-let pendingInputs = [], prediction = true, reconciliation = true;
+let authState = null,           // the server's authoritative state of the mp. Will be used to overwrite the entirety of mp properties
+    predictedState = null;		
+    pendingInputs = [], prediction = true, reconciliation = true;
+    authStateCopy = null;

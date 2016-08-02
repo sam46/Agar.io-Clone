@@ -15,7 +15,8 @@ window.onload = function() {
 			height = canvas.height = window.innerHeight;
 	var ready = false;
 	var mp = new Player(-1);		// main player
-	var wheel = 0;
+	//var wheel = 0;
+	var frame = 1;
 	var infoPan = new InfoPan();
 	var spanel = document.getElementById("start-panel"),
 			spanel_style = window.getComputedStyle(spanel),
@@ -33,6 +34,8 @@ window.onload = function() {
 	generateBlobs();
 	Connect();
 	initFPS();
+
+
 	run();
 
 	window.onresize = function(event) {
@@ -66,10 +69,13 @@ function Connect(){
 			mp.cmx = mp.organs[0].x;
 			mp.cmy = mp.organs[0].y;
 
-			//console.log(parseFloat(init_data[1])+","+parseFloat(init_data[2]));
+			authStateCopy  = new Player(-1);
+    		copyPlayer(mp, authStateCopy);
+
 			fst_msg = false;
 			spanel.style.display = "none";
 			infoPan.show();
+
 			ready = true;
 			lastTime = performance.now();
 			return;
@@ -122,6 +128,7 @@ function Connect(){
 	};
 
 	function addEventListeners(){
+
 		document.body.addEventListener("mousemove", function(event) {
 
 			inBuff.push({
@@ -150,38 +157,16 @@ function send(input) {
 		conn.send(input.inType+","+input.xdir+","+input.ydir+","+input.seq);
 }
 
-function processServerMsg() {	//
+function processServerMsg() {	
 	if(authState == null) return;
 
 	// Overwrite mp's state by the authState we got from the server.
 	// The state includes all mp's properties and his organs' properties as well
-
 	mp = null;
 	mp = new Player(authState.pid);
-	mp.organs = [];
-	mp.directX = authState.directX;
-	mp.directY = authState.directY;
-	mp.cmx = authState.cmx;
-	mp.cmy = authState.cmy;
+	copyPlayer(authState, mp);
 
-	// fill in mp's organs[]
-	for(var i=0; i< authState.organs.length; i++) {
-		var curOrg = authState.organs[i];
-
-		var temp = new Organ(curOrg.x, curOrg.y, curOrg.size,
-			curOrg.xspd, curOrg.yspd);
-		temp.lock = curOrg.lock;
-		temp.applySizeEase = curOrg.applySizeEase;
-		temp.massDelta = curOrg.massDelta;
-		temp.applyPosEase = curOrg.applyPosEase;
-		temp.easeDist = curOrg.easeDist;
-		temp.easex = curOrg.easex;
-		temp.easey = curOrg.easey;
-
-		mp.organs.push(temp);
-	}
-
-	// Re-apply all inputs not processed by server yet
+	// Re-apply all inputs/physics not processed by server yet
 	if(reconciliation) {
 		var i = 0;
         while (i < pendingInputs.length) {
@@ -196,11 +181,19 @@ function processServerMsg() {	//
               i++;
             }
         }
+
+        if(predictedState != null)		// reconciliation for physics/state
+        	copyPlayer(predictedState, mp);
 	}
+
 	else {		// if we're not reconciling, drop all stored inputs cuz we dont need them
 		pendingInput = [];
 	}
 
+	// save the server's state for later rendering of server output
+    authStateCopy = new Player(-1);  copyPlayer(authState, authStateCopy);	
+
+    predictedState = null;
 	authState = null;
 }
 
@@ -215,58 +208,56 @@ function run() {		// Main game-loop function
 			var input = inBuff.shift();			// shift() removes the first element... thus inBuffs functions as a queue
 			send(input);
 			pendingInputs.push(input);			// store inputs sent to server for later reconciliation
-			if(prediction) applyInput(input);	// only locally apply user input to mp if client-prediction is on
+			if(prediction) applyInput(input);	// client-prediction for input
 		}
 
-		if(prediction) {	// only simulate physics locally if prediction is on
+		if(prediction) {	// client-prediction for physics/state
 			var now = performance.now();
 			calcFPS(now);
 		    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update
 			lastTime = now;
 
-			if(delta >= 1) {
-				// code here should run at times/second
-				for(var i=0; i<mp.organs.length; i++)
-					mp.organs[i].update();
-				mp.constrain();
-				mp.calCM();
+			while(delta >= 1) {
+				mp.update();
 				delta--;
 			}
+
+			predictedState = new Player(mp.pid);
+			copyPlayer(mp, predictedState);
 		}
 
-		/**Rendering**/
+		//console.log(Date()+"   "+frame);
+		//console.log("\t"+mp.cmx+"\t"+mp.cmy);
+
+		/*** Rendering ***/
 		context.clearRect(0, 0, width, height);
 		xshift = mp.cmx - width/2;
 		yshift = mp.cmy - height/2;
 		drawGrid();
 		drawBlobs();
 
-		// draw mp
 		for(var i=0; i<mp.organs.length; i++)
-			mp.organs[i].draw(context,"Player One");
+			mp.organs[i].draw(context,"Player");
+		for(var i=0; i<authStateCopy.organs.length; i++){
+			authStateCopy.organs[i].color = 'red';
+			authStateCopy.organs[i].draw(context,"Server");
+		}
 
-		// draw info on debug panel
-		infoPan.updateData({
-			cmx: mp.cmx,
-			cmy: mp.cmy,
-			num:  mp.organs.length
-		});
+		// draw info on the panel
+		var data = {
+			cmx1: authStateCopy.cmx,
+			cmx2: mp.cmx,
+			cmy1: authStateCopy.cmy,
+			cmy2: mp.cmy,
+			frm: frame++
+		};
+		infoPan.updateData(data);
 
 		context.textAlign = 'left';
 	    context.font = '25px sans-serif';
 	    context.fillStyle = 'gray';
 		context.fillText(fps, 25, 30);
 
-		/*
-		// for testing: draw server output
-		if(players.length!=0)
-		for(var i = 0; i < players.length; i++) {
-			context.beginPath();
-			context.arc(players[i].x - xshift, players[i].y - yshift, players[i].size, 0,2*Math.PI);
-			context.fillStyle = "red";
-			context.fill();
-		}
-		*/
 	}
 
 	else {	// if not ready
@@ -284,6 +275,7 @@ function run() {		// Main game-loop function
 }	// end run()
 
 function applyInput(input) {
+
 	mp.directX = input.xdir;
 	mp.directY = input.ydir;
 	

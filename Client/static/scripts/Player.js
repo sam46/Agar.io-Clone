@@ -80,7 +80,7 @@ Organ.prototype.draw = function (context, name) {
 	context.fillText(name, this.x-xshift, this.y-yshift+10);
 };
 
-/************************************************/
+/**********************************************************************************/
 
 function Player(player_id) {
 	this.pid = player_id;
@@ -148,3 +148,36 @@ Player.prototype.calCM = function() {
 	this.cmx = avgX/count;
 	this.cmy = avgY/count;
 };
+
+Player.prototype.update = function (){
+	for(var i=0; i<this.organs.length; i++)
+		this.organs[i].update();
+	this.constrain();
+	this.calCM();
+}
+
+/**********************************************************************************/
+function copyPlayer(src, target){
+	target.organs = [];
+	target.directX = src.directX;
+	target.directY = src.directY;
+	target.cmx = src.cmx;
+	target.cmy = src.cmy;
+
+	// fill in targets's organs[]
+	for(var i=0; i< src.organs.length; i++) {
+		var curOrg = src.organs[i];
+
+		var temp = new Organ(curOrg.x, curOrg.y, curOrg.size,
+			curOrg.xspd, curOrg.yspd);
+		temp.lock = curOrg.lock;
+		temp.applySizeEase = curOrg.applySizeEase;
+		temp.massDelta = curOrg.massDelta;
+		temp.applyPosEase = curOrg.applyPosEase;
+		temp.easeDist = curOrg.easeDist;
+		temp.easex = curOrg.easex;
+		temp.easey = curOrg.easey;
+
+		target.organs.push(temp);
+	}
+}
