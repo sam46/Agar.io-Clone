@@ -50,14 +50,11 @@ public class MyWsServer extends WebSocketServer {
 	}
 
 	@Override
-	public  void onClose( WebSocket conn, int code, String reason, boolean remote ) {
+	public  void onClose( WebSocket conn, int code, String reason, boolean remote) {
 		System.out.println( "closed" );
 		int pid = conn.hashCode();
-		
-		synchronized (GameDs.cLck) {
-			GameDs.connections.remove(conn);
-		}
-		
+
+		Player player;
 		synchronized (GameDs.pLck) {
 			int ind = -1;
 			for(Player pl : GameDs.players){
@@ -65,8 +62,9 @@ public class MyWsServer extends WebSocketServer {
 				if(pl.pid == pid)
 					break;
 			}
-			GameDs.players.remove(ind);
+			player = GameDs.players.remove(ind);
 		}
+		player.clean();
 	}
 
 	@Override

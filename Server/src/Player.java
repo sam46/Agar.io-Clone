@@ -19,8 +19,8 @@ public class Player {
 		pid = ws.hashCode();		// the player id will just be the hash of the websocket
 		
 		myorgans = new ArrayList<Organ>();
-		Organ temp = new Organ(pid, rand.nextDouble()*200, rand.nextDouble()*200,
-				130, 6, 3);
+		Organ temp = new Organ(pid, 0, 0,
+				130, 6, 0);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {
@@ -57,6 +57,22 @@ public class Player {
 	@Override
 	public boolean equals(Object obj) {
 		return pid == ((Player)obj).pid;
+	}
+	
+	public void clean(){
+		synchronized (GameDs.oLck) {
+			for (int i = 0; i < GameDs.organsLists.size(); i++) {
+				if(GameDs.organsLists.get(i).get(0).owner == this.pid) {
+					GameDs.organsLists.remove(i);
+					break;
+				}
+			}
+		}
+
+		synchronized (GameDs.cLck) {
+			GameDs.connections.remove(this.conn);
+		}
+
 	}
 	
 }

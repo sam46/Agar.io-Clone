@@ -21,26 +21,6 @@ public class GameDs {
 	public final static Object bLck = new Object();	// blobs list lock;
 	public final static Object mLck = new Object();	// message buffer lock
 	public final static Object cLck = new Object();	// connections(WebSockets) list lock
-	
-	/*
-	// add input to buffer and remove any previous input of the same "type" from the same client
-	public static void addInput(Uinput ui){
-		Uinput firstMail = inputBuf.peek();
-		Uinput currentMail = inputBuf.remove();
-		while (true) {
-		    //a base condition to stop the loop
-			Uinput tempMail = inputBuf.peek();
-		    if (tempMail == null || tempMail.equals(firstMail)) {
-		    	inputBuf.offer(currentMail);
-		        break;
-		    }
-		    //if there's nothing wrong with the current mail, then re add to mailbox
-		    if (!badNews(currentMail)) {
-		    	inputBuf.offer(currentMail);
-		    }
-		    currentMail = inputBuf.poll();
-		}
-	}
-	*/
-	
+
+	public final static int fRate = 56;
 }

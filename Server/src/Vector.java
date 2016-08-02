@@ -61,5 +61,9 @@ public class Vector {
 		calMag();
 		calTh();
 	}
+
+	public void print(){
+		System.out.println("( "+this.x+",  "+this.y+" )");
+	}
 	
 }

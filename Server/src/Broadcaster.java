@@ -25,19 +25,20 @@ public class Broadcaster implements Runnable {
 			//for (int i = 0; i < tempQueue.size(); i++) 
 				//data +=  tempQueue.remove() + ";";
 			
-			if(!data.isEmpty()) data = data.substring(0, data.length()-1);
-			
-			synchronized (GameDs.cLck) {
-				for (WebSocket conn : GameDs.connections) 
-					//tempList.add(conn);
-					conn.send(data);
+			if(!data.isEmpty()) {
+				data = data.substring(0, data.length() - 1);
+
+				synchronized (GameDs.cLck) {
+					for (WebSocket conn : GameDs.connections)
+						//tempList.add(conn);
+						conn.send(data);
+				}
 			}
-			
 			//for (WebSocket conn : tempList) 
 				//conn.send(data);
 			
 			try {
-				Thread.sleep(1000/56);		// TODO: tweak/fix
+				Thread.sleep(1000/GameDs.fRate);		// TODO: tweak/fix
 			} catch (InterruptedException e) {}
 			
 		}	// end while

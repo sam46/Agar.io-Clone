@@ -10,7 +10,7 @@ public class Organ extends GameObj {
 	public Vector mpDirect;			// player's direction
 	public Vector  mpCM;			// player's CM
 	/* Easing variables */
-	private static final double ease_step = 0.5, ease_spd = 60;		// control the speed of the easing and how many frames it takes to finish
+	private static final double ease_step = 0.45, ease_spd = 10;		// control the speed of the easing and how many frames it takes to finish
 	private double easeDist,			// how far will the organ go when launched
 				  massDelta;		// how much will the increase/decrease in size be. could be + or -
 	private Vector easeVec;			// in which direction will the organ launch
@@ -48,15 +48,14 @@ public class Organ extends GameObj {
 		applySizeEase = true;
 	}
 	
-	
-	
-	public void update(double dt){
-		move(dt);
-		
+	public void update(){
+		double dt = 1.0/56;
+
+		move();
 		if(applyPosEase){	
 			pos.add(ease_spd*dt*easeVec.x*ease_step*easeDist, ease_spd*dt*easeVec.y*ease_step*easeDist);
 			easeDist -= ease_spd*dt*ease_step*easeDist;
-			if(Math.abs(easeDist) <= 0.001f) {
+			if(Math.abs(easeDist) <= 0.001) {
 				applyPosEase = false;
 				lock = true;
 			}
@@ -65,14 +64,19 @@ public class Organ extends GameObj {
 		if(applySizeEase){
 			size += ease_spd*dt*massDelta*ease_step;
 			massDelta -= ease_spd*dt*massDelta*ease_step;
-			if(Math.abs(massDelta) <= 0.001f)
+			if(Math.abs(massDelta) <= 0.001)
 				applySizeEase = false;
 		}
 	}
 	
-	public void move(double dt) {
+	public void move() {
 		pos.add(vel.x, vel.y);
-				
+		if(Double.isNaN(pos.x) || Double.isNaN(pos.y)){
+			pos.print();
+			vel.print();
+			System.out.println("-----------------------------");
+		}
+
 		//teleport to the other side if beyond world space
 		//if(pos.x>3000) pos.x = -3000;
 		//else if (pos.x<-3000) pos.x = 3000;

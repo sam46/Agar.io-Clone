@@ -2,6 +2,8 @@ import java.awt.peer.SystemTrayPeer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.sql.Timestamp;
+import java.util.Date;
 /***********************************************************************
 	This thread will handle input processing, physics and frame updates 
 ************************************************************************/
@@ -50,7 +52,6 @@ public class World implements Runnable  {
 			for (List<Organ> orgList : organsListsCopy)
 				for (Organ org : orgList)
 					GameDs.msgBuf.add(org.getData());
-
 		}
 	}
 
@@ -172,13 +173,14 @@ public class World implements Runnable  {
 
 	@Override
 	public void run() {
-
+		//long frm = 0;
 		lastTime = System.nanoTime();
-		final int times = 56;				// the physics (coords updates) should update 60 times a second
+		final int times = GameDs.fRate;				// the physics (coords updates) should update 60 times a second
 		double ns = 1000000000.0 / times;  	// the time till the next physics update in nano seconds  
 		double delta = 0;				
-		
+
 		while(true) {
+
 			copyOrgansList();		// oLck blocking
 			procInput();			// input buffer blocking
 			dispatchToMsgBuf();		// mLck blocking
@@ -189,27 +191,31 @@ public class World implements Runnable  {
 			delta += (now - lastTime) / ns;  // detla += actual elapsed time / time required for 1 update
 		    lastTime = now;
 
-		    if(delta >= 1) { // if enough time has passed: update
+		    while(delta >= 1) {
 		    	for (List<Organ> li : organsListsCopy) {
 					for (Organ temp : li)
-						temp.update(0.3*1.0 / times);
+						temp.update();
+
 					constrain(li);
 					calCM(li);
 				}
-
-				delta--;					
+				
+				delta--;
 		    }
-			
+
 		   // orgorgCollision(times);
 		   // orgblobCollision();
 
-			/*
-				TODO:
-				fix time stepping/FPS
-				currently server and client are out of sync... ??
-			*/
 
-			try{ Thread.sleep( (long)(lastTime - System.nanoTime() + ns)/1000000 ); }
+//			if(!organsListsCopy.isEmpty()) {
+//				frm++;
+//				java.util.Date date= new java.util.Date();
+//				System.out.println(new Timestamp(date.getTime())+"  "+frm);
+//				System.out.println("\t" + organsListsCopy.get(0).get(0).mpCM.x+
+//						"   " + organsListsCopy.get(0).get(0).mpCM.y);
+//			}
+
+			try { Thread.sleep(9); } // (long)(System.nanoTime() - lastTime+ ns)/1000000 ); }
 			catch (InterruptedException e) { e.printStackTrace(); }
 			
 		}	// end while		
@@ -228,6 +234,7 @@ public class World implements Runnable  {
 		this.fps = new double[10];
 		for(int i=0; i < 10; i++) fps[0] = 0.0;
 	}
+
 	double calAVG() {
 		double count = 0.0;
 		for (int i=fps.length-1; i>0; i--)
