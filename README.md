@@ -1,17 +1,15 @@
 # Agarioplica
 
-A replica of the real-time multiplayer game [agar.io](http://agar.io/)
+A replica of the real-time multiplayer game [agar.io](http://agar.io/), features client-side prediction and lag compensation 
 
 The server is in Java. Client code utilizes HTML5 and Jquery.
 Server-Client communication is done using [web sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 
 ##### STILL A WORK IN PROGRESS!!
 
-#### Check out the local browser-only demo, as the full server-client code is laggy due to it being in the middle of an upgrade.
-
 #### Building
 
-To run the server, build the files in the src folder, and include the jar file in your project dependencies
+To run the server, build the files in the src folder, and include the jar file in your project dependencies. Run the client from the Client folder.
 
 #### TODO List
 - [x] Fixing time-stepping on server and clients
