@@ -75,8 +75,6 @@ public class MyWsServer extends WebSocketServer {
 
 	@Override
 	public  void onMessage( WebSocket conn, String message ) {
-		//System.out.println("in: "+message);
-
 		// route this message to GameDs.inputBuf
 		int type;
 		Uinput uin = null;
@@ -104,12 +102,10 @@ public class MyWsServer extends WebSocketServer {
 			inputBuf.add(uin);		// Thread-Critical statement!!
 		} catch(Exception e){ 
 			e.printStackTrace();
-			//System.out.println(message);
 			System.exit(0);
 		}
 
 	}
-
 
 	@Override
 	public void onMessage(WebSocket conn, ByteBuffer message){
@@ -121,7 +117,6 @@ public class MyWsServer extends WebSocketServer {
 		builder.setTransferemasked( false );
 		conn.sendFrame( frame );
 	}
-	
 
 	public static void main(String[] args) throws UnknownHostException { // Thread 1:  main thread
 		WebSocketImpl.DEBUG = false;

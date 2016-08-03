@@ -22,5 +22,5 @@ public class GameDs {
 	public final static Object mLck = new Object();	// message buffer lock
 	public final static Object cLck = new Object();	// connections(WebSockets) list lock
 
-	public final static int fRate = 56;
+	public final static double timestep = 17;
 }

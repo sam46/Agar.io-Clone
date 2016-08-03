@@ -33,6 +33,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.yspd = ySpd;
 	this.size = size;
 	this.color = 'blue';
+	this.name = '';
 	// Easing variables
 	this.applySizeEase = false;
 	this.massDelta = 0.0;
@@ -98,7 +99,14 @@ Organ.prototype.draw = function (context) {
 	context.beginPath();
 	context.arc(this.x - xshift, this.y - yshift, this.size, 0,2*Math.PI);
 	context.fillStyle = this.color;
-	context.fill();		
+	context.fill();	 	context.textAlign = 'center';
+
+  context.font = '30px sans-serif';
+	context.strokeStyle = 'black';
+ 	context.lineWidth = 3;
+	context.strokeText(this.name, this.x-xshift, this.y-yshift+10);
+  context.fillStyle = 'white';
+	context.fillText(this.name, this.x-xshift, this.y-yshift+10);	
 };
 
 /************************************************/
@@ -112,15 +120,16 @@ function Player() {
 
 Player.prototype.constrain = function(){	// constrain organs movements
 	// after the organs are packed, they can't keep going in their direction, they have to start going in the CM direction
-	for(var i = 0; i < this.organs.length; i++) {
+	/*for(var i = 0; i < this.organs.length; i++) {
 		var org = this.organs[i];
 		if(org.lock && (org.applyPosEase == false) && (org.applyPosEase == false)) {
 			var mag = Math.sqrt(org.xspd*org.xspd + org.yspd*org.yspd);
 			var ang = Math.atan2( this.directY, this.directX);
 			org.xspd = Math.cos(ang) * mag;
 			org.yspd = Math.sin(ang) * mag;
+			org.name = 'c';
 		}
-	}
+	}*/
 
 	// check for collision between mp's organs
 	for(var i = 0; i < this.organs.length-1; i++) {
@@ -145,8 +154,8 @@ Player.prototype.constrain = function(){	// constrain organs movements
 				org1.x += Math.cos(o12ang) * (-interleave/2);
 				org1.y += Math.sin(o12ang) * (-interleave/2);
 
-				org1.lock = true;
-				org2.lock = true;
+				//org1.lock = true;
+				//org2.lock = true;
 			}
 
 		}
@@ -179,8 +188,12 @@ function Blob (x,y,col) {
 }
 
 /*************************************************************************************************************************/
-
-window.onload = function() {
+var nnn = 0;
+window.onload = function() {	
+	setInterval(function(){
+		console.log(nnn);
+		nnn=0;
+	}, 1000);
 	var canvas = document.getElementById("canvas"),
 		context = canvas.getContext("2d"),
 		width = canvas.width = window.innerWidth,
@@ -258,7 +271,7 @@ function run() {		// Main game-loop function
 				mp.organs[i].update();
 			mp.constrain();	
 			mp.calCM();
-
+			nnn++;
 			delta--;
 		}
 

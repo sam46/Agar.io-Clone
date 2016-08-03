@@ -49,7 +49,7 @@ public class Organ extends GameObj {
 	}
 	
 	public void update(){
-		double dt = 1.0/56;
+		double dt = GameDs.timestep/1000;
 
 		move();
 		if(applyPosEase){	
@@ -97,7 +97,7 @@ public class Organ extends GameObj {
 	}
 
 	// TODO: implement this functionality with a better de/serialization mechanism
-	public  String getData(){
+	public String getData() {
 		return  owner+","						 // 0
 				+pos.x+","						 // 1
 				+pos.y+","						 // 2

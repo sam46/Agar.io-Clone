@@ -23,7 +23,7 @@ Organ.prototype.move = function() {
 Organ.prototype.update = function () {
 	this.move();
 
-	var dt = 1.0/times;
+	var dt = timestep/1000;
 	if(this.applyPosEase){
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
 		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
@@ -95,7 +95,7 @@ Player.prototype.constrain = function(){	// constrain organs movements
 	// after the organs are packed, they can't keep going in their direction, they have to start going in the CM direction
 	for(var i = 0; i < this.organs.length; i++) {
 		var org = this.organs[i];
-		if(org.lock && (org.applyPosEase == false) && (org.applyPosEase == false)) {
+		if(org.lock) {
 			var mag = Math.sqrt(org.xspd*org.xspd + org.yspd*org.yspd);
 			var ang = Math.atan2( this.directY, this.directX);
 			org.xspd = Math.cos(ang) * mag;
@@ -154,8 +154,27 @@ Player.prototype.update = function (){
 		this.organs[i].update();
 	this.constrain();
 	this.calCM();
-}
+};
+/*
+Player.prototype.interpolate = function(targetPlayer, rate) {
+	//var min = Math.min(this.organs.length, targetPlayer.organs.length);
+	if(this.organs.length != targetPlayer.organs.length)
+		return;
+	for (var i = 0; i < this.organs.length; i++) {
+		var targetX = targetPlayer.organs[i].x,
+			targetY = targetPlayer.organs[i].y;
 
+		var org = this.organs[i];
+		    mag   = rate * Math.sqrt( (org.x-targetX)*(org.x - targetX) + (org.y-targetY)*(org.y-targetY) ),
+		    xdir  = targetX - org.x,
+		    ydir  = targetY - org.y;
+		  	ang   = Math.atan2(ydir,xdir);
+		org.x += Math.cos(ang)*mag;
+		org.y += Math.sin(ang)*mag;
+	}
+	this.calCM();
+};
+*/
 /**********************************************************************************/
 function copyPlayer(src, target){
 	target.organs = [];

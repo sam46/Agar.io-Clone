@@ -1,5 +1,4 @@
 import org.java_websocket.WebSocket;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -20,7 +19,7 @@ public class Player {
 		
 		myorgans = new ArrayList<Organ>();
 		Organ temp = new Organ(pid, 0, 0,
-				130, 6, 0);
+				130, 8, 0);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {

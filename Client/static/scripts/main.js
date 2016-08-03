@@ -14,6 +14,7 @@ window.onload = function() {
 			width = canvas.width = window.innerWidth,
 			height = canvas.height = window.innerHeight;
 	var ready = false;
+
 	var mp = new Player(-1);		// main player
 	//var wheel = 0;
 	var frame = 1;
@@ -34,7 +35,6 @@ window.onload = function() {
 	generateBlobs();
 	Connect();
 	initFPS();
-
 
 	run();
 
@@ -76,12 +76,17 @@ function Connect(){
 			spanel.style.display = "none";
 			infoPan.show();
 
+			t = 0;
+			accumulator = 0.0;
+			absoluteTime = 0.0;
+			//lastTime = performance.now();
 			ready = true;
-			lastTime = performance.now();
+
 			return;
 		}
 
-        // authState has the same properties as mp. We'll fill it with the data we recieved
+        // authState has the same properties as mp. A state is almost a Player() object more or less
+        // We'll fill the authState with the data we recieved
         // TODO: implement this functionality with a better de/serialization mechanism
 		authState = null;
 		authState = new Object();
@@ -159,7 +164,6 @@ function send(input) {
 
 function processServerMsg() {	
 	if(authState == null) return;
-
 	// Overwrite mp's state by the authState we got from the server.
 	// The state includes all mp's properties and his organs' properties as well
 	mp = null;
@@ -191,7 +195,7 @@ function processServerMsg() {
 	}
 
 	// save the server's state for later rendering of server output
-    authStateCopy = new Player(-1);  copyPlayer(authState, authStateCopy);	
+    authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup);	
 
     predictedState = null;
 	authState = null;
@@ -212,19 +216,28 @@ function run() {		// Main game-loop function
 		}
 
 		if(prediction) {	// client-prediction for physics/state
-			var now = performance.now();
-			calcFPS(now);
-		    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update
-			lastTime = now;
 
-			while(delta >= 1) {
-				mp.update();
-				delta--;
+			// Fixed timestep: courtesy of Glenn Fiedler of gafferongames.com
+			var newTime = performance.now()*1.0;
+			calcFPS(newTime);
+			var deltaTime = newTime - absoluteTime;
+			if(deltaTime > 200) deltaTime = timestep;
+			if(deltaTime > 0.0)	{
+				absoluteTime = newTime;
+				accumulator += deltaTime;
+				while(accumulator >= timestep) {		
+					mp.update();
+					accumulator -= timestep;
+					t++;					
+				}
+
 			}
 
+			// save the state after prediction for later reconiliation 
 			predictedState = new Player(mp.pid);
 			copyPlayer(mp, predictedState);
 		}
+
 
 		//console.log(Date()+"   "+frame);
 		//console.log("\t"+mp.cmx+"\t"+mp.cmy);
@@ -235,12 +248,12 @@ function run() {		// Main game-loop function
 		yshift = mp.cmy - height/2;
 		drawGrid();
 		drawBlobs();
-
+		console.log(mp.cmx+"   "+mp.cmy);
 		for(var i=0; i<mp.organs.length; i++)
 			mp.organs[i].draw(context,"Player");
-		for(var i=0; i<authStateCopy.organs.length; i++){
-			authStateCopy.organs[i].color = 'red';
-			authStateCopy.organs[i].draw(context,"Server");
+		for(var i=0; i<authStateBackup.organs.length; i++){
+			authStateBackup.organs[i].color = 'red';
+			authStateBackup.organs[i].draw(context,"Server");
 		}
 
 		// draw info on the panel
@@ -426,7 +439,7 @@ function calcFPS(now){
 		   return Math.round(count/fps_arr.length);
 	}
 
-	fps_arr[_ind_%10] = 1000.0/(now-lastTime);
+	fps_arr[_ind_%10] = 1000.0/(now-absoluteTime);
 	_ind_++;
 
 	fps = calAVG();

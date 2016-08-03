@@ -11,11 +11,10 @@ import java.util.Date;
 public class World implements Runnable  {
 	private List<List<Organ>> organsListsCopy = new ArrayList<>();
 	private BlockingQueue<Uinput> inputs;	// This class acts as consumer, it takes off the queue
-	private long lastTime;
 
 	public World(BlockingQueue<Uinput> queue) {
 		this.inputs = queue;
-		initFPS();
+		//initFPS();
 	}
 	
 	private void copyOrgansList(){
@@ -50,8 +49,10 @@ public class World implements Runnable  {
 		synchronized (GameDs.mLck) {
 			GameDs.msgBuf.clear();		// drop messages that weren't sent. TODO: this may be unnecessary, since broadcaster will block till the buffer is empty
 			for (List<Organ> orgList : organsListsCopy)
-				for (Organ org : orgList)
+				for (Organ org : orgList) {
 					GameDs.msgBuf.add(org.getData());
+				}
+
 		}
 	}
 
@@ -77,7 +78,7 @@ public class World implements Runnable  {
 		// after the organs are packed, they can't keep going in their direction, they have to start going in the CM direction
 		for (int i = 0; i < curPlayer.size(); i++) {
 			Organ org = curPlayer.get(i);
-			if (org.lock && (org.applyPosEase == false) && (org.applyPosEase == false)) {
+			if (org.lock) {
 				double mag = Math.sqrt(org.vel.x * org.vel.x + org.vel.y * org.vel.y);
 				double ang = Math.atan2(directY, directX);
 				org.vel = new Vector(ang, mag);
@@ -161,7 +162,6 @@ public class World implements Runnable  {
 
 				if (input.type == 1)	// if this input was md
 					tempOrgans.add(curPlayer.get(i).split());
-
 			}
 
 			// add any newly created organs to this player's organs list
@@ -173,50 +173,47 @@ public class World implements Runnable  {
 
 	@Override
 	public void run() {
-		//long frm = 0;
-		lastTime = System.nanoTime();
-		final int times = GameDs.fRate;				// the physics (coords updates) should update 60 times a second
-		double ns = 1000000000.0 / times;  	// the time till the next physics update in nano seconds  
-		double delta = 0;				
+		int t = 0;
+		double accumulator = 0.0;
+		double timestep = GameDs.timestep;
+		double absoluteTime = 0.0;
 
 		while(true) {
-
 			copyOrgansList();		// oLck blocking
 			procInput();			// input buffer blocking
 			dispatchToMsgBuf();		// mLck blocking
 
-		    /* Delta-timing: guarantees consistent movements and updates regardless of the time each frame takes */
-		    long now = System.nanoTime();
-			//displayFPS(now);
-			delta += (now - lastTime) / ns;  // detla += actual elapsed time / time required for 1 update
-		    lastTime = now;
+			// Fixed timestep: courtesy of Glenn Fielder of gafferongames.com
+			double newTime = System.currentTimeMillis();
+			double deltaTime = newTime - absoluteTime;
 
-		    while(delta >= 1) {
-		    	for (List<Organ> li : organsListsCopy) {
-					for (Organ temp : li)
-						temp.update();
+			if(deltaTime > 200)
+				deltaTime = timestep;
 
-					constrain(li);
-					calCM(li);
+			if(deltaTime > 0.0) {
+				absoluteTime = newTime;
+				accumulator += deltaTime;
+				while (accumulator >= timestep) {
+					for (List<Organ> li : organsListsCopy) {
+						for (Organ temp : li)
+							temp.update();
+						constrain(li);
+						calCM(li);
+					}
+
+					accumulator -= timestep;
+					t++;
 				}
-				
-				delta--;
-		    }
+			}
 
 		   // orgorgCollision(times);
 		   // orgblobCollision();
 
-
-//			if(!organsListsCopy.isEmpty()) {
-//				frm++;
-//				java.util.Date date= new java.util.Date();
-//				System.out.println(new Timestamp(date.getTime())+"  "+frm);
-//				System.out.println("\t" + organsListsCopy.get(0).get(0).mpCM.x+
-//						"   " + organsListsCopy.get(0).get(0).mpCM.y);
-//			}
-
-			try { Thread.sleep(9); } // (long)(System.nanoTime() - lastTime+ ns)/1000000 ); }
-			catch (InterruptedException e) { e.printStackTrace(); }
+			try {
+				Thread.sleep(9);		// TODO: tweak/fix
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			
 		}	// end while		
 		
@@ -228,6 +225,7 @@ public class World implements Runnable  {
 		return (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
 	}
 
+	/*
 	double fps[];
 	int _ind_ = 0;
 	void initFPS() {
@@ -247,5 +245,5 @@ public class World implements Runnable  {
 		_ind_++;
 		System.out.println("FPS: "+calAVG());
 	}
-
+	*/
 }
