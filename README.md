@@ -14,7 +14,7 @@ Server-Client communication is done using [web sockets](https://developer.mozill
 To run the server, build the files in the src folder, and include the jar file in your project dependencies
 
 #### TODO List
-- [ ] Fixing time-stepping on server and clients
+- [x] Fixing time-stepping on server and clients
 - [ ] Handling blob generation and synchronization across clients
 - [ ] Collision Detection
 - [x] Porting physics to Java on the server 
