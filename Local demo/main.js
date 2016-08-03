@@ -19,7 +19,7 @@ var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aq
     wrdWidth = 6000, wrdHeight = 6000,				// world dimensions
     inBuff = [],
     ease_step = 0.45, ease_spd = 10,
-    lastTime, times = 60, ms = 1000.0 / times, delta = 0.0,		// for delta-timing and FPS control
+    t, accumulator, absoluteTime, timestep = 17,        // timestepping
     xshift, yshift,			// for translating the world to be in main player's perspective
     batch_size = 30,		// how many user inputs to handle and send each frame  TODO: tweak
     fps, fps_arr = [], _ind_ = 0;	// for showing fps
@@ -33,7 +33,6 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.yspd = ySpd;
 	this.size = size;
 	this.color = 'blue';
-	this.name = '';
 	// Easing variables
 	this.applySizeEase = false;
 	this.massDelta = 0.0;
@@ -55,7 +54,7 @@ Organ.prototype.update = function () {
 	// cuz I'm lazy and I happen to have it lying around.
 	// Will switch to forces later.
 
-	var dt = 1.0/times;
+	var dt = timestep/1000;
 	if(this.applyPosEase){		// smoothly launch and ease toward distnation if this organ is launching
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
 		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
@@ -100,13 +99,6 @@ Organ.prototype.draw = function (context) {
 	context.arc(this.x - xshift, this.y - yshift, this.size, 0,2*Math.PI);
 	context.fillStyle = this.color;
 	context.fill();	 	context.textAlign = 'center';
-
-  context.font = '30px sans-serif';
-	context.strokeStyle = 'black';
- 	context.lineWidth = 3;
-	context.strokeText(this.name, this.x-xshift, this.y-yshift+10);
-  context.fillStyle = 'white';
-	context.fillText(this.name, this.x-xshift, this.y-yshift+10);	
 };
 
 /************************************************/
@@ -120,16 +112,15 @@ function Player() {
 
 Player.prototype.constrain = function(){	// constrain organs movements
 	// after the organs are packed, they can't keep going in their direction, they have to start going in the CM direction
-	/*for(var i = 0; i < this.organs.length; i++) {
+	for(var i = 0; i < this.organs.length; i++) {
 		var org = this.organs[i];
-		if(org.lock && (org.applyPosEase == false) && (org.applyPosEase == false)) {
+		if(org.lock) {
 			var mag = Math.sqrt(org.xspd*org.xspd + org.yspd*org.yspd);
 			var ang = Math.atan2( this.directY, this.directX);
 			org.xspd = Math.cos(ang) * mag;
 			org.yspd = Math.sin(ang) * mag;
-			org.name = 'c';
 		}
-	}*/
+	}
 
 	// check for collision between mp's organs
 	for(var i = 0; i < this.organs.length-1; i++) {
@@ -154,8 +145,8 @@ Player.prototype.constrain = function(){	// constrain organs movements
 				org1.x += Math.cos(o12ang) * (-interleave/2);
 				org1.y += Math.sin(o12ang) * (-interleave/2);
 
-				//org1.lock = true;
-				//org2.lock = true;
+				org1.lock = true;
+				org2.lock = true;
 			}
 
 		}
@@ -175,6 +166,13 @@ Player.prototype.calCM = function() {
 
 	this.cmx = avgX/count;
 	this.cmy = avgY/count;
+};
+
+Player.prototype.update = function (){
+	for(var i=0; i<this.organs.length; i++)
+		this.organs[i].update();
+	this.constrain();
+	this.calCM();
 };
 
 /************************************************/
@@ -211,7 +209,6 @@ window.onload = function() {
 
 	init();
 
-
 function init(){
 	generateBlobs();	
 	initFPS();
@@ -225,8 +222,10 @@ function init(){
 
 	addEventListeners();
 	infoPan.show();	
+	t = 0;
+	accumulator = 0.0;
+	absoluteTime = 0.0;
 	ready = true;
-	lastTime = performance.now();
 	run(); // Start gameplay
 }
 
@@ -260,19 +259,20 @@ function run() {		// Main game-loop function
 			batchSize--;
 		}
 		
-		var now = performance.now();
-		calcFPS(now);
-	    delta += (now - lastTime) / ms;  // detla += actual elapsed time / time required for 1 update 
-		lastTime = now;
+		// Fixed timestep: courtesy of Glenn Fiedler of gafferongames.com
+		var newTime = performance.now()*1.0;
+		calcFPS(newTime);
+		var deltaTime = newTime - absoluteTime;
+		if(deltaTime > 200) deltaTime = timestep;
+		if(deltaTime > 0.0)	{
+			absoluteTime = newTime;
+			accumulator += deltaTime;
+			while(accumulator >= timestep) {		
+				mp.update();
+				accumulator -= timestep;
+				t++;					
+			}
 
-		if(delta >= 1) { 
-			// updates here:   will run at times/second
-			for(var i=0; i<mp.organs.length; i++) 
-				mp.organs[i].update();
-			mp.constrain();	
-			mp.calCM();
-			nnn++;
-			delta--;
 		}
 
 		context.clearRect(0, 0, width, height);
@@ -426,7 +426,7 @@ function calcFPS(now){
 		   return Math.round(count/fps_arr.length);
 	}
 
-	fps_arr[_ind_%10] = 1000.0/(now-lastTime);
+	fps_arr[_ind_%10] = 1000.0/(now-absoluteTime);
 	_ind_++;
 
 	fps = calAVG();
