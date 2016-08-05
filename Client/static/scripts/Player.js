@@ -13,6 +13,82 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.easeDist = 0.0;
 	this.easex = 0.0;
 	this.easey = 0.0;
+
+	// bounciness effect variables and function
+	this.equilibrium = [];	// original points at equilibrium
+	this.pts = [];
+	this.ptsCount = 0;	
+	this.restoreSpd = 0.026;
+
+	this.initPts = function() {
+		this.equilibrium = [];
+		this.pts = [];
+		this.ptsCount = Math.floor(this.size * 1.0);	// more points == finer outer shape and bounciness 
+
+		var ang = 0.0, incr = 2.0*Math.PI/this.ptsCount;
+			
+		for (var i = 0; i < this.ptsCount; i++) {
+			this.pts[i] = {
+				x:  Math.cos(ang)*this.size,
+				y:  Math.sin(ang)*this.size,
+			};
+			this.equilibrium[i] = this.pts[i];
+			ang += incr;
+		}
+
+		console.log("sides: "+this.ptsCount);
+	};
+
+	// the angle of the impact point (from the player's POV), the radius and intensity of the impact 
+	this.impact = function(ang, hitRad, maxPush){		
+		var hitSpot = {
+			x:  Math.cos(ang)*this.size,
+			y:  Math.sin(ang)*this.size,
+		};
+		
+		for (var i = 0; i < this.pts.length; i++) {
+			var dist2 = distSq(this.pts[i].x, this.pts[i].y, hitSpot.x, hitSpot.y);
+
+			if(dist2 > hitRad*hitRad) 	// if this point isnt within the impact circle
+				continue;
+
+			/* TODO: come up with better way to handle this*/
+
+			// the proximity to the hitSpot, a value between [0,1]
+			var prox = 1 - Math.sqrt(dist2/(hitRad*hitRad));	
+			
+			// determine how the points will be displaced
+			var displacemnt = Math.sqrt(Math.sin(prox)) * this.size * maxPush; // TODO: improve/replace			
+			   
+			// displace the point  
+			var ang = Math.atan2(this.pts[i].y, this.pts[i].x);
+			this.pts[i] = {
+				x: Math.cos(ang)*(this.size - displacemnt),
+				y: Math.sin(ang)*(this.size - displacemnt),
+			};
+		}
+	};
+
+	// restore the points closer to equilibrium
+	this.restore = function(){	
+		for (var i = 0; i < this.pts.length; i++) {
+			if(this.pts[i].x != this.equilibrium[i].x || this.pts[i].y != this.equilibrium[i].y){
+				// the offest of the point from the equilibrium
+				var dist = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y,	
+					 this.equilibrium[i].x, this.equilibrium[i].y));		
+				if(dist <= 0.001){	// if the point is very close to equilibrium just set it there
+					this.pts[i] = this.equilibrium[i]
+					continue;
+				}
+				// move the point closer to equilibrium by a ratio of restoreSpd.
+				var ang = Math.atan2(this.pts[i].y, this.pts[i].x);
+				this.pts[i].x += Math.cos(ang)*dist*this.restoreSpd;
+				this.pts[i].y += Math.sin(ang)*dist*this.restoreSpd;
+			}			
+		}
+	}
+
+	this.initPts();	// should be called everytime the size changes
 }
 
 Organ.prototype.move = function() {
@@ -21,7 +97,14 @@ Organ.prototype.move = function() {
 };
 
 Organ.prototype.update = function () {
+	this.restore();
 	this.move();
+
+	// TODO: tweak correlation between movement and bounciness. right now it's just random
+	if(Math.random() < 0.022) {		// apply some random bouncing effects
+		(Math.random() < 0.4) ?	this.impact(Math.random()*2*Math.PI, 50, 0.09) :
+				this.impact(Math.random()*2*Math.PI, 30, 0.06) ;	
+	}
 
 	var dt = timestep/1000;
 	if(this.applyPosEase){
@@ -30,7 +113,7 @@ Organ.prototype.update = function () {
 		this.easeDist -= ease_spd*dt*ease_step*this.easeDist;
 		if(Math.abs(this.easeDist) <= 0.001){
 			this.applyPosEase = false;
-			this.lock = true;
+			//this.lock = true;			// TODO: investigate 
 		}
 	}
 
@@ -39,6 +122,8 @@ Organ.prototype.update = function () {
 		this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
 		if(Math.abs(this.massDelta) <= 0.001)
 			this.applySizeEase = false;
+
+		this.initPts();		// size has changed... all bounciness variables need an update!!
 	}
 };
 
@@ -64,19 +149,59 @@ Organ.prototype.split = function() {
 	return org2;
 };
 
-Organ.prototype.draw = function (context, name) {
-	context.beginPath();
-	context.arc(this.x - xshift, this.y - yshift, this.size, 0,2*Math.PI);
-	context.fillStyle = this.color;
-	context.fill();
+Organ.prototype.draw = function (context, name, isServer) {
+	if(isServer) {
+		context.beginPath();
+		context.arc(this.x-xshift,this.y-yshift, this.size, 0,2*Math.PI);
+		context.fillStyle = 'rgba(255,0,0,0.3)';
+		context.fill();
+		context.closePath();
+	}
+	
+	else {
+		// draw the organ main skeleton: connect pts[] with lines to give the organ it's circular bouncy shape, then fill.
+		var count = this.ptsCount;
+		context.beginPath();
+		context.moveTo(this.pts[0].x + this.x - xshift, this.pts[0].y + this.y-yshift);
+		for (var i = 0; i < count; i++) {
+			context.lineTo(this.pts[(i+1)%count].x +this.x-xshift, this.pts[(i+1)%count].y +this.y-yshift);
+		}
+		context.closePath();
+		context.fillStyle = 'rgba(0,0,100,0.85)';
+		context.fill();
+		
+		// draw inner circles
+		context.beginPath();
+		context.arc(this.x-xshift,this.y-yshift, this.size*0.88, 0,2*Math.PI);
+		context.fillStyle = 'rgba(0,50,125,0.9)';
+		context.fill();
+		context.closePath();
+
+		context.beginPath();
+		context.arc(this.x-xshift,this.y-yshift, this.size*0.4, 0,2*Math.PI);
+		context.fillStyle = 'rgba(0,50,200,0.2)';
+		context.fill();
+		context.closePath();
+		
+		/*
+		// show pts[]
+		for (var i = 0; i < count; i++) {
+			context.beginPath();
+			context.arc(this.pts[i].x + this.x - xshift, this.pts[i].y +this.y - yshift, 2, 0,2*Math.PI);
+			context.fillStyle = 'red';
+			context.fill();
+			context.closePath();
+		}
+		*/
+	}
 
  	// draw player name
  	context.textAlign = 'center';
-  context.font = '30px sans-serif';
+    context.font = '30px sans-serif';
 	context.strokeStyle = 'black';
  	context.lineWidth = 3;
 	context.strokeText(name, this.x-xshift, this.y-yshift+10);
-  context.fillStyle = 'white';
+    context.fillStyle = 'white';
 	context.fillText(name, this.x-xshift, this.y-yshift+10);
 };
 
@@ -176,8 +301,9 @@ Player.prototype.interpolate = function(targetPlayer, rate) {
 };
 */
 /**********************************************************************************/
-function copyPlayer(src, target){
+function copyPlayer(src, target, preserveBounce){
 	target.organs = [];
+	target.pid = src.pid;
 	target.directX = src.directX;
 	target.directY = src.directY;
 	target.cmx = src.cmx;
@@ -197,6 +323,13 @@ function copyPlayer(src, target){
 		temp.easex = curOrg.easex;
 		temp.easey = curOrg.easey;
 
+		if(preserveBounce) {	// 
+		 	temp.pts = [];
+		 	for (var j = 0; j < curOrg.pts.length; j++) 
+		 		temp.pts[j] = {x:curOrg.pts[j].x, y:curOrg.pts[j].y};
+		}
+
 		target.organs.push(temp);
 	}
+
 }

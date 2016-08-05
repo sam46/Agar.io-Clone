@@ -57,7 +57,7 @@ public class Organ extends GameObj {
 			easeDist -= ease_spd*dt*ease_step*easeDist;
 			if(Math.abs(easeDist) <= 0.001) {
 				applyPosEase = false;
-				lock = true;
+				//lock = true;
 			}
 		}
 		

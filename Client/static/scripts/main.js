@@ -60,7 +60,7 @@ function Connect(){
 		if(fst_msg) {
 			var init_data = String(e.data).split(',');
 			mp.pid = parseInt(init_data[0]);
-			mp.organs.push(new Organ(1,1,1,1,1));
+			mp.organs.push(new Organ(1,1,parseFloat(init_data[3]),1,1));
 			mp.organs[0].x = parseFloat(init_data[1]);
 			mp.organs[0].y = parseFloat(init_data[2]);
 			mp.organs[0].size = parseFloat(init_data[3]);
@@ -84,7 +84,7 @@ function Connect(){
 
 			return;
 		}
-
+		
         // authState has the same properties as mp. A state is almost a Player() object more or less
         // We'll fill the authState with the data we recieved
         // TODO: implement this functionality with a better de/serialization mechanism
@@ -107,7 +107,7 @@ function Connect(){
 			);
 			curOrg.lock =  parseInt(orgData[6]) ? true : false;
 			curOrg.applyPosEase = parseInt(orgData[7]) ? true : false;
-			curOrg.applySizeEase =  parseInt(orgData[8]) ? true : false;
+			curOrg.applySizeEase = parseInt(orgData[8]) ? true : false;
 			curOrg.massDelta = parseFloat(orgData[9]);
 			curOrg.easeDist = parseFloat(orgData[10]);
 			curOrg.easex = parseFloat(orgData[11]);
@@ -166,9 +166,10 @@ function processServerMsg() {
 	if(authState == null) return;
 	// Overwrite mp's state by the authState we got from the server.
 	// The state includes all mp's properties and his organs' properties as well
+	 
 	mp = null;
 	mp = new Player(authState.pid);
-	copyPlayer(authState, mp);
+	copyPlayer(authState, mp, true);
 
 	// Re-apply all inputs/physics not processed by server yet
 	if(reconciliation) {
@@ -187,15 +188,15 @@ function processServerMsg() {
         }
 
         if(predictedState != null)		// reconciliation for physics/state
-        	copyPlayer(predictedState, mp);
+        	copyPlayer(predictedState, mp, true);
 	}
 
 	else {		// if we're not reconciling, drop all stored inputs cuz we dont need them
 		pendingInput = [];
 	}
 
-	// save the server's state for later rendering of server output
-    authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup);	
+	 // save the server's state for later rendering of server output
+     authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup, false);	
 
     predictedState = null;
 	authState = null;
@@ -235,7 +236,7 @@ function run() {		// Main game-loop function
 
 			// save the state after prediction for later reconiliation 
 			predictedState = new Player(mp.pid);
-			copyPlayer(mp, predictedState);
+			copyPlayer(mp, predictedState, true);
 		}
 
 
@@ -248,13 +249,11 @@ function run() {		// Main game-loop function
 		yshift = mp.cmy - height/2;
 		drawGrid();
 		drawBlobs();
-		console.log(mp.cmx+"   "+mp.cmy);
+
 		for(var i=0; i<mp.organs.length; i++)
 			mp.organs[i].draw(context,"Player");
-		for(var i=0; i<authStateBackup.organs.length; i++){
-			authStateBackup.organs[i].color = 'red';
-			authStateBackup.organs[i].draw(context,"Server");
-		}
+		for(var i=0; i<authStateBackup.organs.length; i++) // draw the server's
+			authStateBackup.organs[i].draw(context,"Server",true);
 
 		// draw info on the panel
 		var data = {
@@ -391,9 +390,6 @@ function generateBlobs() {
 	//console.log(blob_count);
 	blobs = [];
 	for (var i = 0; i < blob_count; i++) {
-		//var pos_mag = size + 10 - (wrdWidth/2) + Math.random()*wrdWidth ;
-		//var pos_angle = 2*Math.PI* Math.random();
-		//blobs.push(  new Point(pos_mag*Math.cos(pos_angle), pos_mag*Math.sin(pos_angle), colors[Math.floor((Math.random() * colors.length))])  );
 		blobs.push( new Blob(-(wrdWidth/2) + wrdWidth*Math.random(), -(wrdHeight/2) + wrdHeight*Math.random(), colors[Math.floor((Math.random() * colors.length))]) );
 		blobs[i].isVirus = Math.floor(Math.random()*1000)%25 == 1.0;	// make some blobs viruses
 	}
