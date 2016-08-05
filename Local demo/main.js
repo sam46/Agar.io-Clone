@@ -17,6 +17,7 @@ var blobSize = 12,	// blob radius on screen
 /* Other variables */
 var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"],
     wrdWidth = 6000, wrdHeight = 6000,				// world dimensions
+    width,height,							//  window width and height
     inBuff = [],
     ease_step = 0.45, ease_spd = 10,
     t, accumulator, absoluteTime, timestep = 17,        // timestepping
@@ -39,13 +40,15 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.applyPosEase = false;
 	this.easeDist = 0.0;
 	this.easex = 0.0;
-	this.easey = 0.0;
+	this.easey = 0.0;	
 
 	// bounciness effect variables and function
 	this.equilibrium = [];	// original points at equilibrium
 	this.pts = [];
 	this.ptsCount = 0;
 	this.restoreSpd = 0.026;
+	this._beg = 0;
+	this._var = 0;
 
 	function copyPoint(src) {
 		return {
@@ -182,15 +185,20 @@ Organ.prototype.split = function() {
 	return org2;
 };
 
-var _bool = false;
 Organ.prototype.update = function () {
 	this.restore();
 	this.move();
 
 	// TODO: tweak correlation between movement and bounciness	
-	var _bool = (Math.random()<0.5)? true:false;
-	if(Math.random() < 0.05) 
-		this.impact(Math.PI+Math.atan2(this.yspd,this.xspd) + (_bool? 1:-1)*Math.PI/12, Math.PI/6, this.size/15.0);
+	this._var++;
+	if(this._var % 10 == 0){
+		var count = Math.max(Math.random()*10,1), ang =  Math.PI*2/count;
+		this._beg += ang;
+
+		for (var i = 0; i < count; i++) {
+			this.impact(i*ang + this._beg, Math.PI/count, 2.5);
+		}
+	}
 
 	// I'm using a sloppy lerping hack for projectile motion
 	// cuz I'm lazy and I happen to have it lying around.
@@ -223,21 +231,36 @@ Organ.prototype.draw = function (context) {
 		context.lineTo(this.pts[(i+1)%count].x +this.x-xshift, this.pts[(i+1)%count].y +this.y-yshift);
 	}
 	context.closePath();
-	context.fillStyle = 'rgba(0,0,100,0.85)';
+	context.fillStyle = 'rgba(0,0,110,0.9)';
 	context.fill();
-	
+
 	// draw inner circles
+	context.save();
+	context.translate(this.x-xshift, this.y-yshift);
+	context.scale(0.9,0.9);
+	context.beginPath();
+	context.moveTo(this.pts[0].x, this.pts[0].y);
+	for (var i = 0; i < count; i++) {
+		context.lineTo(this.pts[(i+1)%count].x, this.pts[(i+1)%count].y);
+	}
+	context.closePath();
+	context.fillStyle = 'rgba(0,0,200,0.9)';
+	context.fill();
+	context.restore();
+
+	/*
 	context.beginPath();
 	context.arc(this.x-xshift,this.y-yshift, this.size*0.88, 0,2*Math.PI);
 	context.fillStyle = 'rgba(0,50,125,0.9)';
 	context.fill();
 	context.closePath();
 
+	
 	context.beginPath();
 	context.arc(this.x-xshift,this.y-yshift, this.size*0.4, 0,2*Math.PI);
 	context.fillStyle = 'rgba(0,50,200,0.2)';
 	context.fill();
-	context.closePath();
+	context.closePath();*/
 
 	// show pts[] ?
 	if(false) {
@@ -340,9 +363,9 @@ function Blob (x,y,col) {
 
 window.onload = function() {	
 	var canvas = document.getElementById("canvas"),
-		context = canvas.getContext("2d"),
-		width = canvas.width = window.innerWidth,
-		height = canvas.height = window.innerHeight;
+		context = canvas.getContext("2d");
+	width = canvas.width = window.innerWidth;
+	height = canvas.height = window.innerHeight;
 	var ready = false;
 	var infoPan = new InfoPan();		// debug menu
 	window.onresize = function(event) {

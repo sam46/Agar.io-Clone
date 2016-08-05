@@ -10,9 +10,9 @@ function Blob (x,y,col) {
 
 window.onload = function() {
 	var canvas = document.getElementById("canvas"),
-			context = canvas.getContext("2d"),
-			width = canvas.width = window.innerWidth,
-			height = canvas.height = window.innerHeight;
+		context = canvas.getContext("2d");
+	width = canvas.width = window.innerWidth;
+	height = canvas.height = window.innerHeight;
 	var ready = false;
 
 	var mp = new Player(-1);		// main player

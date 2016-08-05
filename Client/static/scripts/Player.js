@@ -19,6 +19,8 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.pts = [];
 	this.ptsCount = 0;	
 	this.restoreSpd = 0.026;
+	this._beg = 0;
+	this._var = 0;
 
 	function copyPoint(src) {
 		return {
@@ -136,10 +138,16 @@ Organ.prototype.update = function () {
 	this.restore();
 	this.move();
 
-	// TODO: tweak correlation between movement and bounciness
-	var _bool = (Math.random()<0.5)? true:false;
-	if(Math.random() < 0.05) 
-		this.impact(Math.PI+Math.atan2(this.yspd,this.xspd) + (_bool? 1:-1)*Math.PI/12, Math.PI/6, this.size/10.0);
+	// TODO: tweak correlation between movement and bounciness	
+	this._var++;
+	if(this._var % 10 == 0){
+		var count = Math.max(Math.random()*10,1), ang =  Math.PI*2/count;
+		this._beg += ang
+
+		for (var i = 0; i < count; i++) {
+			this.impact(i*ang + this._beg, Math.PI/count, 2.5);
+		}
+	}
 
 	var dt = timestep/1000;
 	if(this.applyPosEase){
@@ -202,21 +210,36 @@ Organ.prototype.draw = function (context, name, isServer) {
 			context.lineTo(this.pts[(i+1)%count].x +this.x-xshift, this.pts[(i+1)%count].y +this.y-yshift);
 		}
 		context.closePath();
-		context.fillStyle = 'rgba(0,0,100,0.85)';
+		context.fillStyle = 'rgba(0,0,110,0.9)';
 		context.fill();
-		
+
 		// draw inner circles
+		context.save();
+		context.translate(this.x-xshift, this.y-yshift);
+		context.scale(0.9,0.9);
+		context.beginPath();
+		context.moveTo(this.pts[0].x, this.pts[0].y);
+		for (var i = 0; i < count; i++) {
+			context.lineTo(this.pts[(i+1)%count].x, this.pts[(i+1)%count].y);
+		}
+		context.closePath();
+		context.fillStyle = 'rgba(0,0,200,0.9)';
+		context.fill();
+		context.restore();
+
+		/*
 		context.beginPath();
 		context.arc(this.x-xshift,this.y-yshift, this.size*0.88, 0,2*Math.PI);
 		context.fillStyle = 'rgba(0,50,125,0.9)';
 		context.fill();
 		context.closePath();
 
+		
 		context.beginPath();
 		context.arc(this.x-xshift,this.y-yshift, this.size*0.4, 0,2*Math.PI);
 		context.fillStyle = 'rgba(0,50,200,0.2)';
 		context.fill();
-		context.closePath();
+		context.closePath();*/
 		
 		// show pts[] ?
 		if(false) {
@@ -364,6 +387,8 @@ function copyPlayer(src, target, preserveBounce){
 		 	for (var j = 0; j < curOrg.pts.length; j++) 
 		 		temp.pts[j] = { x:curOrg.pts[j].x, y:curOrg.pts[j].y,
 		 		th:curOrg.pts[j].th, r:curOrg.pts[j].r };
+		 	temp._var = curOrg._var;
+		 	temp._beg = curOrg._beg;
 		}
 
 		target.organs.push(temp);

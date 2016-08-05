@@ -9,6 +9,7 @@ let blobSize = 12,	// blob radius on screen
 let ip_address = "localhost", port = "8080", conn,
     colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"],
     wrdWidth = 2000*3, wrdHeight = 2000*3,				// world dimensions
+    width,height,                           //  window width and height
     inSeq = 0, inBuff = [],     
     ease_step = 0.45, ease_spd = 10,
     t, accumulator, absoluteTime, timestep = 17,        // timestepping
