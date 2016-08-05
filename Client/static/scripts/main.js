@@ -135,7 +135,6 @@ function Connect(){
 	function addEventListeners(){
 
 		document.body.addEventListener("mousemove", function(event) {
-
 			inBuff.push({
 				seq : inSeq,
 				xdir : event.clientX-(width/2.0),
@@ -169,7 +168,7 @@ function processServerMsg() {
 	 
 	mp = null;
 	mp = new Player(authState.pid);
-	copyPlayer(authState, mp, true);
+	copyPlayer(authState, mp, false);
 
 	// Re-apply all inputs/physics not processed by server yet
 	if(reconciliation) {
@@ -195,13 +194,12 @@ function processServerMsg() {
 		pendingInput = [];
 	}
 
-	 // save the server's state for later rendering of server output
-     authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup, false);	
+	// save the server's state for later rendering of server output
+    authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup, false);	
 
     predictedState = null;
 	authState = null;
 }
-
 
 function run() {		// Main game-loop function
 	if(ready) {
@@ -231,14 +229,12 @@ function run() {		// Main game-loop function
 					accumulator -= timestep;
 					t++;					
 				}
-
 			}
 
 			// save the state after prediction for later reconiliation 
 			predictedState = new Player(mp.pid);
 			copyPlayer(mp, predictedState, true);
 		}
-
 
 		//console.log(Date()+"   "+frame);
 		//console.log("\t"+mp.cmx+"\t"+mp.cmy);
@@ -287,7 +283,6 @@ function run() {		// Main game-loop function
 }	// end run()
 
 function applyInput(input) {
-
 	mp.directX = input.xdir;
 	mp.directY = input.ydir;
 	

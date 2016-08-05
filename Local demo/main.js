@@ -47,70 +47,106 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.ptsCount = 0;
 	this.restoreSpd = 0.026;
 
+	function copyPoint(src) {
+		return {
+			x: src.x,
+			y: src.y,
+			r: src.r,
+			th: src.th
+		};
+	}
+
 	this.initPts = function() {
 		this.equilibrium = [];
 		this.pts = [];
-		this.ptsCount = Math.floor(this.size * 1.0);	// more points == finer outer shape and bounciness 	
+		this.ptsCount = Math.floor(this.size * 1.0);	// more points == finer outer shape and bounciness 
 
 		var ang = 0.0, incr = 2.0*Math.PI/this.ptsCount;
 			
 		for (var i = 0; i < this.ptsCount; i++) {
+			// user is responsible for making sure polar and cartesian coords of points are matching, for now.
 			this.pts[i] = {
 				x:  Math.cos(ang)*this.size,
-				y:  Math.sin(ang)*this.size,
+				y:  Math.sin(ang)*this.size,	
+				th: ang,			// assert: th is always in [0, 2pi]
+				r: this.size
 			};
-			this.equilibrium[i] = this.pts[i];
+			this.equilibrium[i] = copyPoint(this.pts[i]);
 			ang += incr;
 		}
 
 		console.log("sides: "+this.ptsCount);
 	};
 
-	// the angle of the impact point (from the player's POV), the radius and intensity of the impact 
-	this.impact = function(ang, hitRad, maxPush){		
+	// the angle of the impact point (from the player's POV), the radius of the arc (in radians) and intensity of the impact 
+	this.impact = function(ang, arcTheta, maxPush) {
+		arcTheta *= 0.5;	
+
 		var hitSpot = {
-			x:  Math.cos(ang)*this.size,
-			y:  Math.sin(ang)*this.size,
+			x:  Math.cos(ang+Math.PI)*this.size,
+			y:  Math.sin(ang+Math.PI)*this.size,
 		};
-		
+
+		// determine (index of) the closest point to impact location
+		var ind = -1, max = -1;	
 		for (var i = 0; i < this.pts.length; i++) {
 			var dist2 = distSq(this.pts[i].x, this.pts[i].y, hitSpot.x, hitSpot.y);
-
-			if(dist2 > hitRad*hitRad) 	// if this point isnt within the impact circle
-				continue;
-
-			/* TODO: come up with better way to handle this*/
-
-			// the proximity to the hitSpot, a value between [0,1]
-			var prox = 1 - Math.sqrt(dist2/(hitRad*hitRad));	
-			
-			// determine how the points will be displaced
-			var displacemnt = Math.sqrt(Math.sin(prox)) * this.size * maxPush; // TODO: improve/replace			
-			   
-			// displace the point  
-			var ang = Math.atan2(this.pts[i].y, this.pts[i].x);
-			this.pts[i] = {
-				x: Math.cos(ang)*(this.size - displacemnt),
-				y: Math.sin(ang)*(this.size - displacemnt),
-			};
+			if(dist2 > max){
+				ind = i;
+				max = dist2
+			}
 		}
-	};
+
+		hitSpot = copyPoint(this.pts[ind]);	// assert ind != -1
+
+		// how many neighboring points in either direction are gonna be affected ?
+		// we want an arc of angle theta to be affected on either side of the (new) hitSpot.
+		// each point on the arc will be pushed/displaced by some 
+		// amount acording to some function of it's proximity to the hitSpot
+		for (var i = 0; i < this.pts.length; i++) {
+			var curPt = this.pts[(i+ind)%this.pts.length];
+
+			//if(this.equilibrium[(i+ind)%this.pts.length].r - curPt.r < 0.1)
+			//		continue;
+
+			// smallest angle between the two points
+			var angularDist = Math.abs(curPt.th - hitSpot.th);
+			if(angularDist > Math.PI) angularDist = 2*Math.PI - angularDist;
+
+			// if the current point is within the affected arc:
+			if(angularDist <= arcTheta) {
+				var prox = Math.abs(1 - angularDist/arcTheta);	// normalize how close curPt to hitSpot is.
+				// the function we'll use for interpolating diplacement according to proximity
+				var f = function(x) {	// domain is [0,1]
+					return 6.0*Math.pow(x,5) - 15.0*Math.pow(x,4)+ 10.0*Math.pow(x,3);
+				}
+				var displacemntAmt = f(prox)* maxPush;
+
+				// displace it: 
+				this.pts[(i+ind)%this.pts.length].x = Math.cos(curPt.th)*(curPt.r - displacemntAmt);
+				this.pts[(i+ind)%this.pts.length].y = Math.sin(curPt.th)*(curPt.r - displacemntAmt),
+				this.pts[(i+ind)%this.pts.length].r = curPt.r - displacemntAmt;
+			}
+		}
+	}
 
 	// restore the points closer to equilibrium
-	this.restore = function(){	
+	this.restore = function() {	
 		for (var i = 0; i < this.pts.length; i++) {
-			if(this.pts[i].x != this.equilibrium[i].x || this.pts[i].y != this.equilibrium[i].y){
+			var diff = Math.abs(this.equilibrium[i].r - this.pts[i].r);
+			if( diff > 0.1 ) {
 				// the offest of the point from the equilibrium
 				var dist = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y,	
 					 this.equilibrium[i].x, this.equilibrium[i].y));		
-				if(dist <= 0.001){	// if the point is very close to equilibrium just set it there
-					this.pts[i] = this.equilibrium[i]
-					continue;
-				}
-				// move the point closer to equilibrium by a ratio of restoreSpd.
+
+				// move the point closer to equilibrium by a reatio of restoreSpd.
 				var ang = Math.atan2(this.pts[i].y, this.pts[i].x);
 				this.pts[i].x += Math.cos(ang)*dist*this.restoreSpd;
 				this.pts[i].y += Math.sin(ang)*dist*this.restoreSpd;
+				this.pts[i].r = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y, 0,0));
+			}
+			else {	// snap this point to equilibrium, it's very close to it
+				this.pts[i] = copyPoint(this.equilibrium[i]);
 			}			
 		}
 	}
@@ -146,20 +182,19 @@ Organ.prototype.split = function() {
 	return org2;
 };
 
+var _bool = false;
 Organ.prototype.update = function () {
 	this.restore();
 	this.move();
 
-	// TODO: tweak correlation between movement and bounciness. right now it's just random
-	if(Math.random() < 0.023) {		// apply some random bouncing effects
-		(Math.random() < 0.4) ?	this.impact(Math.random()*2*Math.PI, 50, 0.09) :
-				this.impact(Math.random()*2*Math.PI, 30, 0.06) ;	
-	}
+	// TODO: tweak correlation between movement and bounciness	
+	var _bool = (Math.random()<0.5)? true:false;
+	if(Math.random() < 0.05) 
+		this.impact(Math.PI+Math.atan2(this.yspd,this.xspd) + (_bool? 1:-1)*Math.PI/12, Math.PI/6, this.size/15.0);
 
 	// I'm using a sloppy lerping hack for projectile motion
 	// cuz I'm lazy and I happen to have it lying around.
 	// Will switch to forces later.
-
 	var dt = timestep/1000;
 	if(this.applyPosEase){		// smoothly launch and ease toward distnation if this organ is launching
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
@@ -204,16 +239,17 @@ Organ.prototype.draw = function (context) {
 	context.fill();
 	context.closePath();
 
-	/*
-	// show pts[]
-	for (var i = 0; i < count; i++) {
-		context.beginPath();
-		context.arc(this.pts[i].x + this.x - xshift, this.pts[i].y +this.y - yshift, 2, 0,2*Math.PI);
-		context.fillStyle = 'red';
-		context.fill();
-		context.closePath();
+	// show pts[] ?
+	if(false) {
+		for (var i = 0; i < count; i++) {
+			context.beginPath();
+			context.arc(this.pts[i].x + this.x - xshift, this.pts[i].y +this.y - yshift, 2, 0,2*Math.PI);
+			context.fillStyle = 'red';
+			context.fill();
+			context.closePath();
+		}
 	}
-	*/
+	
 };
 
 /************************************************/
@@ -362,7 +398,6 @@ function addEventListeners(){
 
 function run() {		// Main game-loop function
 	if(ready) {
-		console.log('running');
 		var batchSize = batch_size;
 		while(batchSize > 0 && inBuff.length>0) {
 		var input = inBuff.shift();			// shift() removes the first element.... as in Queues
