@@ -11,7 +11,7 @@ Server-Client communication is done using [web sockets](https://developer.mozill
 
 To run the server, build the files in the src folder, and include the jar file in your project dependencies. Run the client from the Client folder. 
 
-#### USE GOOGLE CHROME for running client
+#### USE GOOGLE CHROME for running client. Move with mouse, Shoot mass with a left-click.
 
 #### TODO List
 - [x] Fixing time-stepping on server and clients
