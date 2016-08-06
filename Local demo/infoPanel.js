@@ -3,9 +3,9 @@ function InfoPan(X,Y,Wid,Hei){
 	this.$info = $('<div id = "info" />').appendTo('body');		// <div /> will create a new div element
  	this.set(X,Y,Wid,Hei);
  	
- 	this.$info.append('<h1 class="centered"> Debug Menu </h1> <br />');
+ 	this.$info.append('<h1 class="centered"> Debug Menu </h1>');
   	this.$dataDiv = $('<div id = "data"/>').appendTo(this.$info)
-  	this.$dataDiv.html('<p/><p/><p/>');
+  	this.$dataDiv.html('<p/><p/><p/><p><br/>P: show points</p><p>D: disable mouse click</p>');
   	this.data = this.$dataDiv.children().toArray();
 	this.$info.css({
 		'background': 'rgb(35, 35, 35)',
@@ -27,7 +27,7 @@ function InfoPan(X,Y,Wid,Hei){
  	this.$centered.css({
   		'text-align': 'center',
   		'font': 'bold solid',
-  		'color': '#b0b0ff'//'#F92672'
+  		'color': '#b0b0ff'
   	});
 }
 

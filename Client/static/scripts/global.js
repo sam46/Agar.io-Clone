@@ -22,3 +22,8 @@ let authState = null,           // the server's authoritative state of the mp. W
     pendingInputs = []
     prediction = true, reconciliation = true,       
     authStateCopy = null;       // for rendering raw server output
+
+let slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},           // organ collision slack parameters
+    ripple = {freq: 6, speed: 15, strength: 2.0},
+    showName = true, showServer = true,
+    showPts = false;

@@ -153,6 +153,16 @@ function Connect(){
 			});
 			inSeq++;
 		});
+
+		window.onkeyup = function(e) {
+		    var key = e.keyCode ? e.keyCode : e.which;
+		    if (key == 73) 
+		        showServer = !showServer;
+		    else if (key == 80) 
+	       		showPts = !showPts;
+		    else if (key == 79) 
+		        showName = !showName; 
+		};
 	}
 }	// end connect()
 
@@ -247,9 +257,11 @@ function run() {		// Main game-loop function
 		drawBlobs();
 
 		for(var i=0; i<mp.organs.length; i++)
-			mp.organs[i].draw(context,"Player");
+			mp.organs[i].draw(context, "Player");
+		if(showServer)
 		for(var i=0; i<authStateBackup.organs.length; i++) // draw the server's
-			authStateBackup.organs[i].draw(context,"Server",true);
+			authStateBackup.organs[i].draw(context, "Server",true);
+		
 
 		// draw info on the panel
 		var data = {

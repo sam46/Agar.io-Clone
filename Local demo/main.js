@@ -23,8 +23,10 @@ var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aq
     t, accumulator, absoluteTime, timestep = 17,        // timestepping
     xshift, yshift,			// for translating the world to be in main player's perspective
     batch_size = 30,		// how many user inputs to handle and send each frame  TODO: tweak
-    fps, fps_arr = [], _ind_ = 0;	// for showing fps
-
+    fps, fps_arr = [], _ind_ = 0,	// for showing fps
+	slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},			// organ collision slack parameters
+	ripple = {freq: 6, speed: 15, strength: 2.0},
+	showPts = false, enableClick = true;
 /*************************************************************************************************************************/
 function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.lock = false;		// prevent organ from going apart and lock it in place (relative to CM)
@@ -78,7 +80,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 			ang += incr;
 		}
 
-		console.log("sides: "+this.ptsCount);
+		//console.log("sides: "+this.ptsCount);
 	};
 
 	// the angle of the impact point (from the player's POV), the radius of the arc (in radians) and intensity of the impact 
@@ -191,12 +193,12 @@ Organ.prototype.update = function () {
 
 	// TODO: tweak correlation between movement and bounciness	
 	this._var++;
-	if(this._var % 10 == 0){
-		var count = Math.max(Math.random()*10,1), ang =  Math.PI*2/count;
+	if(this._var % ripple.speed == 0){
+		var freq = Math.max(Math.random()*ripple.freq,1), ang =  Math.PI*2/freq;
 		this._beg += ang;
 
-		for (var i = 0; i < count; i++) {
-			this.impact(i*ang + this._beg, Math.PI/count, 2.5);
+		for (var i = 0; i < freq; i++) {
+			this.impact(i*ang + this._beg, Math.PI/freq, ripple.strength);
 		}
 	}
 
@@ -237,7 +239,8 @@ Organ.prototype.draw = function (context) {
 	// draw inner circles
 	context.save();
 	context.translate(this.x-xshift, this.y-yshift);
-	context.scale(0.9,0.9);
+	var scaler = Math.min(0.7 + 0.1*this.size/50, 0.95);
+	context.scale(scaler, scaler);
 	context.beginPath();
 	context.moveTo(this.pts[0].x, this.pts[0].y);
 	for (var i = 0; i < count; i++) {
@@ -263,7 +266,7 @@ Organ.prototype.draw = function (context) {
 	context.closePath();*/
 
 	// show pts[] ?
-	if(false) {
+	if(showPts) {
 		for (var i = 0; i < count; i++) {
 			context.beginPath();
 			context.arc(this.pts[i].x + this.x - xshift, this.pts[i].y +this.y - yshift, 2, 0,2*Math.PI);
@@ -296,16 +299,19 @@ Player.prototype.constrain = function(){	// constrain organs movements
 		}
 	}
 
+
 	// check for collision between mp's organs
+	var slack = (slk._slk1 + slk._slk2*Math.sin(slk._slk))*slk._slk3;
+	slk._slk += 0.1;
 	for(var i = 0; i < this.organs.length-1; i++) {
 		var org1 = this.organs[i];
 		for(var j = i+1; j < this.organs.length; j++){
 			var org2 = this.organs[j];
 
-			var radSum = org2.size+org1.size;		// sum of radii
+			var radSum = (org2.size+org1.size) + slack;		// sum of radii. slack is for separating the two touching organs by some distance. Changing the slack yields nice effect too.
 			var distSqr = distSq(org1.x, org1.y, org2.x, org2.y);	// distance between centers squared
 
-			if( Math.pow(radSum, 2) + 0.5>  distSqr) {		// if there's an intersection 
+			if(Math.pow(radSum, 2) > distSqr) {		// if there's an intersection 
 
 				var interleave = radSum - Math.sqrt(distSqr);	// how much are the two circles intersecting?  r1 + r2 - distnace
 				
@@ -322,7 +328,7 @@ Player.prototype.constrain = function(){	// constrain organs movements
 				org1.lock = true;
 				org2.lock = true;
 			}
-
+		 
 		}
 
 	}
@@ -366,8 +372,10 @@ window.onload = function() {
 		context = canvas.getContext("2d");
 	width = canvas.width = window.innerWidth;
 	height = canvas.height = window.innerHeight;
+	var mp;		// main player
 	var ready = false;
 	var infoPan = new InfoPan();		// debug menu
+	var dgui;
 	window.onresize = function(event) {
 		// update stuff that depend on the window size.... 
 		// I know so sloppy.... will look into stuff like bootstrap later. Baby steps XD
@@ -375,7 +383,13 @@ window.onload = function() {
 		height = canvas.height = window.innerHeight;
 	    infoPan.refresh();
 	};
-	var mp;		// main player
+	window.onkeyup = function(e) {
+	    var key = e.keyCode ? e.keyCode : e.which;
+	    if(key == 80) 
+	       showPts = !showPts;
+	    if(key = 68)
+	       enableClick = !enableClick;
+	};
 
 	init();
 
@@ -385,13 +399,18 @@ function init(){
 
 	// initilaize player's properties
 	mp = new Player();
-	mp.organs.push(new Organ(0, 0, 165, 6, 6));  
+	mp.organs.push(new Organ(0, 0, 200, 6, 6));  
 	mp.cmx = mp.organs[0].x;						
 	mp.cmy = mp.organs[0].y; 
 
 
 	addEventListeners();
 	infoPan.show();	
+	dgui = new dat.GUI({ autoPlace: false });
+	document.getElementById("info").appendChild(dgui.domElement);
+	dgui.add(ripple,"freq",1,25);
+	dgui.add(ripple,"strength",0.0,3.0);
+
 	t = 0;
 	accumulator = 0.0;
 	absoluteTime = 0.0;
@@ -414,7 +433,7 @@ function addEventListeners(){
 		inBuff.push({	
 			xdir : event.clientX-(width/2.0),
 			ydir : event.clientY-(height/2.0),
-			inType : "md"
+			inType : enableClick ? "md" : "mm"
 		});
 	});
 }
@@ -488,7 +507,6 @@ function process(input) {
 
 		mp.organs[i].xspd = Math.cos(ang) * mag;
 		mp.organs[i].yspd = Math.sin(ang) * mag;
-
 
 		if(input.inType == 'md')	// if this is a mouse click
 			tempOrgans.push(mp.organs[i].split());

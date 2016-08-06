@@ -5,7 +5,7 @@ function InfoPan(X,Y,Wid,Hei){
  	
  	this.$info.append('<h1 class="centered"> Debug Menu </h1>');
   	this.$dataDiv = $('<div id = "data"/>').appendTo(this.$info)
-  	this.$dataDiv.html('<p/><p/><p/><p/>');
+  	this.$dataDiv.html('<p/><p/><p/><p/><p/><p><br/>I: show server</p><p>O: show names</p><p>P: show points</p>');
   	this.data = this.$dataDiv.children().toArray();
 	this.$info.css({
 		'background': 'rgb(35, 35, 35)',
