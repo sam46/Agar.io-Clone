@@ -14,7 +14,7 @@ import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 public class MyWsServer extends WebSocketServer {
-	private static int counter = 0;	// count how many players are currently connected
+	public static int counter = 0;	// count how many players are currently connected
 	private volatile StringTokenizer stok;
 
 // We'll receive input from onMessage and store it in this thread-safe buffer:

@@ -57,7 +57,7 @@ function Connect(){
 	conn.onmessage = function(e) {
 
 		// if this is the first msg:
-		if(fst_msg) {
+		if(fst_msg) {	// first message will contain data only meant for mp
 			var init_data = String(e.data).split(',');
 			mp.pid = parseInt(init_data[0]);
 			mp.organs.push(new Organ(1,1,parseFloat(init_data[3]),1,1));
@@ -84,6 +84,8 @@ function Connect(){
 
 			return;
 		}
+
+		// messages from now on will contain all organs present on the server, so filtering is required.
 		
         // authState has the same properties as mp. A state is almost a Player() object more or less
         // We'll fill the authState with the data we recieved
@@ -91,6 +93,7 @@ function Connect(){
 		authState = null;
 		authState = new Object();
 		authState.organs = [];
+		op = [];
 
 		var AllOrgs = String(e.data).split(';');		// organs/players are separated by ';'
 
@@ -98,7 +101,7 @@ function Connect(){
 			// player/organs' properties are separated by ','
 			var orgData = AllOrgs[i].split(',');
 
-			// add the ith organ to authState
+			// construct the organ object from the data recieved
 			var curOrg = new Organ( parseFloat(orgData[1]),
 				parseFloat(orgData[2]),
 				parseFloat(orgData[3]),
@@ -112,16 +115,48 @@ function Connect(){
 			curOrg.easeDist = parseFloat(orgData[10]);
 			curOrg.easex = parseFloat(orgData[11]);
 			curOrg.easey = parseFloat(orgData[12]);
-			authState.organs.push(curOrg);
 
-			// those properties are for the player, not for the organs, but for now the server appends them to each organ belonging to the player.
-			// they should really be added, sent and read just once though (instead of in a loop) to avoid redundancy
-			authState.pid = parseInt(orgData[0]);
-			authState.directX = parseFloat(orgData[13]);
-			authState.directY = parseFloat(orgData[14]);
-			authState.cmx = parseFloat(orgData[15]);
-			authState.cmy = parseFloat(orgData[16]);
-			authState.seq = parseInt(orgData[17]);
+			// if this organ is mp's
+			if(mp.pid == parseInt(orgData[0])) {
+				// we'll put the data meant for mp in authState
+				authState.organs.push(curOrg);
+			
+			// those properties are for the player, not for the organs, but for now the server appends the player's data to each of his organs.
+			// they should really be added, sent and read just once though (instead of in a loop) since they're shared among all organs
+			// to avoid redundancy and bandwidth consumption
+				authState.pid = parseInt(orgData[0]);
+				authState.directX = parseFloat(orgData[13]);
+				authState.directY = parseFloat(orgData[14]);
+				authState.cmx = parseFloat(orgData[15]);
+				authState.cmy = parseFloat(orgData[16]);
+				authState.seq = parseInt(orgData[17]);
+			}
+
+			// if this organ is now mp's:
+			else {
+
+				// figure out which player this data is meant for
+				var owner = null;
+				for (var j = 0; j < op.length; j++) {
+					if(op[j].pid == parseInt(orgData[0])){
+						owner = op[j];
+						break;
+					}
+				}
+
+				if(owner == null) {	// if this organ/data doesnt belong to any player in op[], create a new player and give it to him
+					owner = new Player(parseInt(orgData[0]));
+					op.push(owner);
+				}
+
+				owner.organs.push(curOrg);	
+				owner.directX = parseFloat(orgData[13]);
+				owner.directY = parseFloat(orgData[14]);
+				owner.cmx = parseFloat(orgData[15]);
+				owner.cmy = parseFloat(orgData[16]);
+				owner.seq = parseInt(orgData[17]);
+
+			}
 
 		}
 
@@ -141,7 +176,7 @@ function Connect(){
 				ydir : event.clientY-(height/2.0),
 				inType : "mm"
 			});
-			inputSeq++;
+			inSeq++;
 		});
 
 		document.body.addEventListener("mousedown", function(event) {
@@ -245,10 +280,7 @@ function run() {		// Main game-loop function
 			copyPlayer(mp, predictedState, true);
 		}
 
-		//console.log(Date()+"   "+frame);
-		//console.log("\t"+mp.cmx+"\t"+mp.cmy);
-
-		/*** Rendering ***/
+		/****** Rendering ******/
 		context.clearRect(0, 0, width, height);
 		xshift = mp.cmx - width/2;
 		yshift = mp.cmy - height/2;
@@ -257,6 +289,13 @@ function run() {		// Main game-loop function
 
 		for(var i=0; i<mp.organs.length; i++)
 			mp.organs[i].draw(context, "Player");
+
+		for(var i=0; i<op.length; i++){
+			for (var j = 0; j < op[i].organs.length; j++) {	
+				op[i].organs[j].draw(context, "other");
+			}
+		}
+
 		if(showServer)
 			for(var i=0; i<authStateBackup.organs.length; i++) // draw the server's
 				authStateBackup.organs[i].draw(context, "Server",true);
@@ -275,7 +314,6 @@ function run() {		// Main game-loop function
 	    context.font = '25px sans-serif';
 	    context.fillStyle = 'gray';
 		context.fillText(fps, 25, 30);
-
 	}
 
 	else {	// if not ready
@@ -285,7 +323,7 @@ function run() {		// Main game-loop function
         context.textAlign = 'center';
         context.fillStyle = '#FFFFFF';
         context.font = 'bold 30px sans-serif';
-		context.fillText('Connecting to server....', width/2, height/2);
+		context.fillText('Connecting to server...', width/2, height/2);
 		spanel.style.display = "block";
 	}
 

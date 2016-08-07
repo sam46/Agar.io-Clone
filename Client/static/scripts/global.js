@@ -5,8 +5,9 @@ let blobSize = 12,	// blob radius on screen
  	blobs = [];	// store positions of blobs
 
 /* Other variables */
-//var players = [];
+
 let ip_address = "localhost", port = "8080", conn,
+    op = [],    // other players
     colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"],
     wrdWidth = 2000*3, wrdHeight = 2000*3,				// world dimensions
     width,height,                           //  window width and height

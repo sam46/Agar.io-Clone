@@ -52,7 +52,6 @@ public class World implements Runnable  {
 				for (Organ org : orgList) {
 					GameDs.msgBuf.add(org.getData());
 				}
-
 		}
 	}
 
@@ -132,12 +131,13 @@ public class World implements Runnable  {
 
 			// find to whom does this input belong, store it in curPlayer
 			for (List<Organ> player : organsListsCopy) {
-				if(player.get(0).owner == input.pid)
+				if(player.get(0).owner == input.pid){
 					curPlayer = player;
-				break;
+					break;
+				}
 			}
 
-			// TODO: bug: curPlayer is null sometimes !!
+			// Potential bug: curPlayer is null sometimes
 
 			// assert curPlayer ain't null
 			if(curPlayer == null )
