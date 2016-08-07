@@ -399,7 +399,7 @@ function init(){
 
 	// initilaize player's properties
 	mp = new Player();
-	mp.organs.push(new Organ(0, 0, 200, 6, 6));  
+	mp.organs.push(new Organ(0, 0, 200, 6, 4));  
 	mp.cmx = mp.organs[0].x;						
 	mp.cmy = mp.organs[0].y; 
 
@@ -575,15 +575,15 @@ function generateBlobs() {
 function drawBlobs() {
 	for (var i = 0; i < blobs.length; i++) {
 		if(!blobs[i].isVirus)
-			drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
+		drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
 				blobSize, 6, blobs[i].color, blobs[i].ang);
 		else
-			drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
-				blobSize*6, 17, "Chartreuse", 0);
+		drawVirus(blobs[i].x - xshift, blobs[i].y - yshift,
+				100, 0);
 	}
 }
 
-// draw a polygon with given sides and radius(for the circumscribing circle) 
+// draw a polygon with given sides and radius(for the circumscribing circle)
 function drawCircle(x,y,rad,sides,col,start) {
 	var ang = 2*Math.PI/sides;
 	var cur = start;
@@ -593,9 +593,30 @@ function drawCircle(x,y,rad,sides,col,start) {
 	for(var i=0; i<sides; i++) {
 		context.lineTo(x+ rad*Math.cos(cur+ang), y+rad*Math.sin(cur+ang));
 		cur += ang;
-	}	
+	}
 	context.closePath();
-	context.fillStyle = col;	
+	context.fillStyle = col;
+	context.fill();
+}
+
+function drawVirus(x,y,rad,start){
+	var virusTipLength = 7.0;
+	var tips = rad/2.0;
+		if(Math.floor(tips)%2==0) tips = Math.floor(tips);
+		else tips = Math.ceil(tips);
+	
+	var sides = 2*tips;
+	var ang = 2*Math.PI/sides;
+	var cur = start;
+	context.beginPath();
+	context.moveTo(x+ rad*Math.cos(cur), y+rad*Math.sin(cur));
+	for(var i=0; i<sides; i++) {
+		var mag = (i%2==0) ? rad - virusTipLength : rad;
+		context.lineTo(x+ mag*Math.cos(cur+ang), y+ mag*Math.sin(cur+ang));
+		cur += ang;
+	}
+	context.closePath();
+	context.fillStyle = "Chartreuse";
 	context.fill();
 }
 

@@ -69,8 +69,8 @@ function Connect(){
 			mp.cmx = mp.organs[0].x;
 			mp.cmy = mp.organs[0].y;
 
-			authStateCopy  = new Player(-1);
-    		copyPlayer(mp, authStateCopy);
+			authStateBackup  = new Player(-1);
+    		copyPlayer(mp, authStateBackup);
 
 			fst_msg = false;
 			spanel.style.display = "none";
@@ -141,7 +141,7 @@ function Connect(){
 				ydir : event.clientY-(height/2.0),
 				inType : "mm"
 			});
-			inSeq++;
+			inputSeq++;
 		});
 
 		document.body.addEventListener("mousedown", function(event) {
@@ -172,13 +172,11 @@ function send(input) {
 }
 
 function processServerMsg() {	
-	if(authState == null) return;
+	if(authState == null) return false;
 	// Overwrite mp's state by the authState we got from the server.
 	// The state includes all mp's properties and his organs' properties as well
 	 
-	mp = null;
-	mp = new Player(authState.pid);
-	copyPlayer(authState, mp, false);
+	copyPlayer(authState, mp);
 
 	// Re-apply all inputs/physics not processed by server yet
 	if(reconciliation) {
@@ -205,16 +203,17 @@ function processServerMsg() {
 	}
 
 	// save the server's state for later rendering of server output
-    authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup, false);	
+    authStateBackup = new Player(-1);  copyPlayer(authState, authStateBackup);	
 
     predictedState = null;
 	authState = null;
+	return true;
 }
 
 function run() {		// Main game-loop function
 	if(ready) {
 
-		processServerMsg();		// Set mp's state according to server's authoritative msg. Also do reconciliation if enabled.
+		var recievedState = processServerMsg();		// Set mp's state according to server's authoritative msg. Also do reconciliation if enabled.
 
 		var batchSize = batch_size; // multiple mouse inputs could be coming in a frame, so we have to process multiple per frame.
 		while(batchSize-- > 0 && inBuff.length > 0) {
@@ -259,15 +258,14 @@ function run() {		// Main game-loop function
 		for(var i=0; i<mp.organs.length; i++)
 			mp.organs[i].draw(context, "Player");
 		if(showServer)
-		for(var i=0; i<authStateBackup.organs.length; i++) // draw the server's
-			authStateBackup.organs[i].draw(context, "Server",true);
+			for(var i=0; i<authStateBackup.organs.length; i++) // draw the server's
+				authStateBackup.organs[i].draw(context, "Server",true);
 		
-
 		// draw info on the panel
 		var data = {
-			cmx1: authStateCopy.cmx,
+			cmx1: authStateBackup.cmx,
 			cmx2: mp.cmx,
-			cmy1: authStateCopy.cmy,
+			cmy1: authStateBackup.cmy,
 			cmy2: mp.cmy,
 			frm: frame++
 		};
@@ -408,8 +406,8 @@ function drawBlobs() {
 		drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
 				blobSize, 6, blobs[i].color, blobs[i].ang);
 		else
-		drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
-				blobSize*6, 17, "Chartreuse", 0);
+		drawVirus(blobs[i].x - xshift, blobs[i].y - yshift,
+				100, 0);
 	}
 }
 
@@ -426,6 +424,27 @@ function drawCircle(x,y,rad,sides,col,start) {
 	}
 	context.closePath();
 	context.fillStyle = col;
+	context.fill();
+}
+
+function drawVirus(x,y,rad,start){
+	var virusTipLength = 7.0;
+	var tips = rad/2.0;
+		if(Math.floor(tips)%2==0) tips = Math.floor(tips);
+		else tips = Math.ceil(tips);
+	
+	var sides = 2*tips;
+	var ang = 2*Math.PI/sides;
+	var cur = start;
+	context.beginPath();
+	context.moveTo(x+ rad*Math.cos(cur), y+rad*Math.sin(cur));
+	for(var i=0; i<sides; i++) {
+		var mag = (i%2==0) ? rad - virusTipLength : rad;
+		context.lineTo(x+ mag*Math.cos(cur+ang), y+ mag*Math.sin(cur+ang));
+		cur += ang;
+	}
+	context.closePath();
+	context.fillStyle = "Chartreuse";
 	context.fill();
 }
 

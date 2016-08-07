@@ -17,13 +17,12 @@ let ip_address = "localhost", port = "8080", conn,
     batch_size = 30,		      // how many user inputs to handle and send each frame  TODO: tweak
     fps_arr = [], _ind_ = 0, fps;	// for showing fps
 
-let authState = null,           // the server's authoritative state of the mp. Will be used to overwrite the entirety of mp properties
+let authState = null,           // the server's authoritative raw state of the mp
     predictedState = null;		
     pendingInputs = []
     prediction = true, reconciliation = true,       
-    authStateCopy = null;       // for rendering raw server output
+    authStateBackup = null;       // for rendering raw server output
 
 let slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},           // organ collision slack parameters
     ripple = {freq: 6, speed: 15, strength: 2.0},
-    showName = true, showServer = true,
-    showPts = false;
+    showName = true, showServer = true, showPts = false;
