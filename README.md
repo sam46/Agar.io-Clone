@@ -16,11 +16,11 @@ To run the server, build the files in the src folder, and include the jar file i
 #### TODO List
 - [x] Fixing time-stepping on server and clients
 - [ ] Handling blob generation and synchronization across clients
-- [ ] Collision Detection
+- [ ] Collision Detection (with Quad trees?)
 - [x] Porting physics to Java on the server 
-- [ ] Implementing [Source startegy](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking) for client-server communication. Better explained [here](http://www.gabrielgambetta.com/fpm1.html)
+- [ ] Implementing [Source strategy](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking) for client-server communication. Better explained [here](http://www.gabrielgambetta.com/fpm1.html)
 - [ ] Replacing string data communication between server and clients with other formats/encoding. ( JSON or raw binary? ) 
-- [ ] Enhanced graphics/effects
+- [x] Enhanced graphics/effects
 - [ ] Tweaking input processing and buffering across threads
 - [ ] Optimization for cpu-heavy code
 - [ ] Creating a pre-game panel for preliminary settings and player name input
