@@ -1,7 +1,5 @@
 /*
-	This's a server-independent demo of the game for convenience,
-	and also because the full code is buggy (yes even buggier than this xD) and in
-	the middle of an upgrade. 
+	This's a server-independent demo of the game for convenience
 */
 
 // The lingo I'm using:
@@ -10,14 +8,15 @@
 
 /* Blob-related variables */
 var blobSize = 12,	// blob radius on screen
-	blobDensity = 1.0/1700, //  (blobs_areas) / available_area
+	blobDensity = 1.0/2000, //  (blobs_areas) / available_area
  	blobFactor = 20, // how much size increases by eating a blob
- 	blobs = [];	
+ 	blobs = [];		// for now, this contains food blobs and viruses
 
 /* Other variables */
 var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"],
+	colorPresets = [['#E59E06','#FFB007'],['#91E506','#A2FF07'],['#063ED5','#0745FF'],['#06BBE5','#07D0FF']], mpColor = Math.floor(Math.random()*4),
     wrdWidth = 6000, wrdHeight = 6000,				// world dimensions
-    width,height,							//  window width and height
+    width,height,							//  canvas width and height
     inBuff = [],
     ease_step = 0.45, ease_spd = 10,
     t, accumulator, absoluteTime, timestep = 17,        // timestepping
@@ -26,7 +25,7 @@ var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aq
     fps, fps_arr = [], _ind_ = 0,	// for showing fps
 	slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},			// organ collision slack parameters
 	ripple = {freq: 6, speed: 15, strength: 2.0},
-	showPts = false, enableClick = true;
+	showPts = false, disableClick = false;
 /*************************************************************************************************************************/
 function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.lock = false;		// prevent organ from going apart and lock it in place (relative to CM)
@@ -35,20 +34,20 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.xspd = xSpd;
 	this.yspd = ySpd;
 	this.size = size;
-	this.color = 'blue';
-	// Easing variables
-	this.applySizeEase = false;
+	this.sizeFinal = this.size;	// size will always try to approach sizeFinal. This enables animations. 
+	this.color = 'red';
+	// Easing/interpolation variables
 	this.massDelta = 0.0;
 	this.applyPosEase = false;
 	this.easeDist = 0.0;
 	this.easex = 0.0;
-	this.easey = 0.0;	
+	this.easey = 0.0;
 
 	// bounciness effect variables and function
-	this.equilibrium = [];	// original points at equilibrium
-	this.pts = [];
-	this.ptsCount = 0;
-	this.restoreSpd = 0.026;
+	this.equilibrium = [];	// original surface points at equilibrium
+	this.pts = [];		// surface points offseted from equilibrium, but always (should be) contained within the equilibrium surface
+	this.ptsCount = 0;		// how many points/sides to use for modeling the organ surface
+	this.restoreSpd = 0.026;	// how fast does pts[] try to reach equilibrium[] 
 	this._beg = 0;
 	this._var = 0;
 
@@ -61,22 +60,24 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 		};
 	}
 
-	this.initPts = function() {
-		this.equilibrium = [];
-		this.pts = [];
-		this.ptsCount = Math.floor(this.size * 1.0);	// more points == finer outer shape and bounciness 
+	this.initPts = function(resetPts) {
+		this.equilibrium = [];		
+		this.ptsCount = 200;	// more points == finer outer shape and bounciness. 
+		if(resetPts)
+			this.pts = [];
 
 		var ang = 0.0, incr = 2.0*Math.PI/this.ptsCount;
 			
 		for (var i = 0; i < this.ptsCount; i++) {
 			// user is responsible for making sure polar and cartesian coords of points are matching, for now.
-			this.pts[i] = {
+			this.equilibrium[i] = {
 				x:  Math.cos(ang)*this.size,
 				y:  Math.sin(ang)*this.size,	
 				th: ang,			// assert: th is always in [0, 2pi]
 				r: this.size
 			};
-			this.equilibrium[i] = copyPoint(this.pts[i]);
+			if(resetPts)
+				this.pts[i] = copyPoint(this.equilibrium[i]);
 			ang += incr;
 		}
 
@@ -84,7 +85,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	};
 
 	// the angle of the impact point (from the player's POV), the radius of the arc (in radians) and intensity of the impact 
-	this.impact = function(ang, arcTheta, maxPush) {
+	this.impact = function(ang, arcTheta, maxPush) {	
 		arcTheta *= 0.5;	
 
 		var hitSpot = {
@@ -136,7 +137,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	}
 
 	// restore the points closer to equilibrium
-	this.restore = function() {	
+	this.restore = function() {	// assumes equilibrim is UPPER bound for pts. if a point ever exceeds its quilibrium limit, it will keep extended to infinity!! 
 		for (var i = 0; i < this.pts.length; i++) {
 			var diff = Math.abs(this.equilibrium[i].r - this.pts[i].r);
 			if( diff > 0.1 ) {
@@ -156,7 +157,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 		}
 	}
 
-	this.initPts();	// should be called everytime the size changes
+	this.initPts(true);	// should be called everytime the size changes
 }
 
 Organ.prototype.move = function(){
@@ -167,24 +168,46 @@ Organ.prototype.move = function(){
 Organ.prototype.easePos = function(xdir, ydir) {
 	this.easex = xdir;
 	this.easey = ydir;
-	this.easeDist = this.size*20;				// TODO: tweak this
+	this.easeDist = this.size*17;				// TODO: tweak this
 	this.applyPosEase = true;
 };
 
-Organ.prototype.easeSize = function(mass_delta) {
-	this.massDelta = mass_delta;
-	this.applySizeEase = true;
-};
-
 Organ.prototype.split = function() {
-	this.easeSize(-this.size/2.0);
+	this.sizeFinal /= 2.0;
 
-	var org2 = new Organ(this.x, this.y, this.size/2,
+	var org2 = new Organ(this.x, this.y, Math.round(this.sizeFinal),
 	 		   this.xspd, this.yspd);
-	var norm = Math.sqrt((org2.xspd*org2.xspd) + (org2.yspd*org2.yspd));
-	org2.easePos(org2.xspd/norm, org2.yspd/norm);
+	var mag = Math.sqrt((org2.xspd*org2.xspd) + (org2.yspd*org2.yspd));
+	org2.easePos(org2.xspd/mag, org2.yspd/mag);
 
 	return org2;
+};
+
+Organ.prototype.scatter = function(cx,cy) {
+	if(Math.abs(this.size-this.sizeFinal) > 1)	// if the size is being changed (which happens if the organ is already being split/scattered), dont scatter
+		return [];
+
+	this.sizeFinal = Math.round(this.sizeFinal);
+	this.size = Math.round(this.size);
+	this.x = cx; this.y = cy;
+	var pcSize = 25.0
+	var peices = Math.floor(this.size/pcSize);	
+
+	this.sizeFinal -= pcSize*(peices-1);
+
+	var curAng = Math.random()*Math.PI, incr = 2*Math.PI/(peices-1);
+	var newOrgs = []
+	for (var i = 0; i < peices-1; i++) {
+		var xdir = Math.cos(curAng), ydir = Math.sin(curAng);
+		var org = new Organ(this.x,this.y,pcSize,
+				  this.xspd, this.yspd);
+		org.easePos(xdir, ydir);
+		newOrgs.push(org);
+
+		curAng += 4*Math.PI*Math.random();
+	}
+
+	return newOrgs;
 };
 
 Organ.prototype.update = function () {
@@ -205,7 +228,7 @@ Organ.prototype.update = function () {
 	// I'm using a sloppy lerping hack for projectile motion
 	// cuz I'm lazy and I happen to have it lying around.
 	// Will switch to forces later.
-	var dt = timestep/1000;
+	var dt = timestep/3500.0;
 	if(this.applyPosEase){		// smoothly launch and ease toward distnation if this organ is launching
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
 		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
@@ -213,30 +236,33 @@ Organ.prototype.update = function () {
 		if(Math.abs(this.easeDist) <= 0.001)
 			this.applyPosEase = false;
 	}
-	
-	if(this.applySizeEase){		// smoothly decrease mass if this organ has just been split
+	dt = timestep/400.0
+	if(Math.abs(this.sizeFinal - this.size) > 0.01){		// smoothly decrease mass if this organ has just been split/scattered
+		this.massDelta = this.sizeFinal - this.size;
+		var isShrinking = this.massDelta < 0; 
 		this.size += ease_spd*dt*this.massDelta*ease_step;
 		this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
-		if(Math.abs(this.massDelta) <= 0.001)
-			this.applySizeEase = false;
+		if(Math.abs(this.massDelta) <= 0.01)
+			this.size = Math.round(this.size*10)/10.0;
 
-		this.initPts();		// size has changed... all bounciness variables need an update!!
+		this.initPts(isShrinking);		// if the size is shrinking
 	}
 };
 
 Organ.prototype.draw = function (context) {
-	// draw the organ main skeleton: connect pts[] with lines to give the organ it's circular bouncy shape, then fill.
+	// draw the organ's main surface by connecting pts[] and filling
 	var count = this.ptsCount;
 	context.beginPath();
 	context.moveTo(this.pts[0].x + this.x - xshift, this.pts[0].y + this.y-yshift);
 	for (var i = 0; i < count; i++) {
 		context.lineTo(this.pts[(i+1)%count].x +this.x-xshift, this.pts[(i+1)%count].y +this.y-yshift);
 	}
+	this.color = colorPresets[mpColor];
 	context.closePath();
-	context.fillStyle = 'rgba(0,0,110,0.9)';
+	context.fillStyle = this.color[0];
 	context.fill();
 
-	// draw inner circles
+	// draw inner surface
 	context.save();
 	context.translate(this.x-xshift, this.y-yshift);
 	var scaler = Math.min(0.7 + 0.1*this.size/50, 0.95);
@@ -247,34 +273,42 @@ Organ.prototype.draw = function (context) {
 		context.lineTo(this.pts[(i+1)%count].x, this.pts[(i+1)%count].y);
 	}
 	context.closePath();
-	context.fillStyle = 'rgba(0,0,200,0.9)';
+	context.fillStyle = this.color[1];
 	context.fill();
 	context.restore();
 
 	/*
 	context.beginPath();
-	context.arc(this.x-xshift,this.y-yshift, this.size*0.88, 0,2*Math.PI);
-	context.fillStyle = 'rgba(0,50,125,0.9)';
+	context.arc(this.x-xshift,this.y-yshift, this.size, 0,2*Math.PI);
+	context.fillStyle = 'rgba(255,0,0,0.2)';
 	context.fill();
 	context.closePath();
-
-	
-	context.beginPath();
-	context.arc(this.x-xshift,this.y-yshift, this.size*0.4, 0,2*Math.PI);
-	context.fillStyle = 'rgba(0,50,200,0.2)';
-	context.fill();
-	context.closePath();*/
+	*/	
 
 	// show pts[] ?
 	if(showPts) {
 		for (var i = 0; i < count; i++) {
 			context.beginPath();
-			context.arc(this.pts[i].x + this.x - xshift, this.pts[i].y +this.y - yshift, 2, 0,2*Math.PI);
+			context.arc(this.equilibrium[i].x + this.x - xshift, this.equilibrium[i].y +this.y - yshift, 1, 0,2*Math.PI);
 			context.fillStyle = 'red';
+			context.fill();
+			context.closePath();			
+			context.beginPath();
+			context.arc(this.pts[i].x + this.x - xshift, this.pts[i].y +this.y - yshift, 1.5, 0,2*Math.PI);
+			context.fillStyle = 'green';
 			context.fill();
 			context.closePath();
 		}
 	}
+	/*
+	var name = this.size;
+	context.textAlign = 'center';
+	context.font = '20px sans-serif';
+	context.strokeStyle = 'black';
+	context.lineWidth = 3;
+	context.strokeText(name, this.x-xshift, this.y-yshift+7);
+	context.fillStyle = 'white';
+	context.fillText(name, this.x-xshift, this.y-yshift+7);*/
 	
 };
 
@@ -299,12 +333,13 @@ Player.prototype.constrain = function(){	// constrain organs movements
 		}
 	}
 
-
 	// check for collision between mp's organs
 	var slack = (slk._slk1 + slk._slk2*Math.sin(slk._slk))*slk._slk3;
 	slk._slk += 0.1;
 	for(var i = 0; i < this.organs.length-1; i++) {
 		var org1 = this.organs[i];
+		if(Math.abs(org1.size-org1.sizeFinal) > 1)
+			continue;
 		for(var j = i+1; j < this.organs.length; j++){
 			var org2 = this.organs[j];
 
@@ -349,11 +384,30 @@ Player.prototype.calCM = function() {
 };
 
 Player.prototype.update = function (){
-	for(var i=0; i<this.organs.length; i++)
+	var peices = [];
+	for(var i=0; i<this.organs.length; i++) {
+		var collision = detectCollision(this.organs[i]);
+		if(collision == 1){	// food blob
+			this.organs[i].sizeFinal += 0.5;
+			//this.organs[i].size += 0.5;	
+		}
+		else if(collision == 2) {	// virus
+			var peicesTemp =  this.organs[i].scatter(this.cmx,this.cmy);
+			for (var j = 0; j < peicesTemp.length; j++) {
+				peices.push(peicesTemp[j]);
+			}
+			break; // TODO: investigate
+		}
+	}
+	for (var i = 0; i < peices.length; i++)
+		this.organs.push(peices[i])
+
+	for(var i=0; i<this.organs.length; i++) 
 		this.organs[i].update();
 	this.constrain();
 	this.calCM();
 };
+
 
 /************************************************/
 
@@ -388,7 +442,7 @@ window.onload = function() {
 	    if(key == 80) 
 	       showPts = !showPts;
 	    if(key = 68)
-	       enableClick = !enableClick;
+	       disableClick = !disableClick;
 	};
 
 	init();
@@ -399,7 +453,7 @@ function init(){
 
 	// initilaize player's properties
 	mp = new Player();
-	mp.organs.push(new Organ(0, 0, 200, 6, 4));  
+	mp.organs.push(new Organ(0, 0, 155, 6, 4));  
 	mp.cmx = mp.organs[0].x;						
 	mp.cmy = mp.organs[0].y; 
 
@@ -430,10 +484,11 @@ function addEventListeners(){
 	});
 
 	document.body.addEventListener("mousedown", function(event) {
+		console.log(disableClick);
 		inBuff.push({	
 			xdir : event.clientX-(width/2.0),
 			ydir : event.clientY-(height/2.0),
-			inType : enableClick ? "md" : "mm"
+			inType : !disableClick ? "mm" : "md"
 		});
 	});
 }
@@ -460,7 +515,6 @@ function run() {		// Main game-loop function
 				accumulator -= timestep;
 				t++;					
 			}
-
 		}
 
 		context.clearRect(0, 0, width, height);
@@ -568,7 +622,8 @@ function generateBlobs() {
 	blobs = [];
 	for (var i = 0; i < blob_count; i++) {
 		blobs.push( new Blob(-(wrdWidth/2) + wrdWidth*Math.random(), -(wrdHeight/2) + wrdHeight*Math.random(), colors[Math.floor((Math.random() * colors.length))]) );
-		blobs[i].isVirus = Math.floor(Math.random()*1000)%25 == 1.0;	// make some blobs viruses
+		blobs[i].isVirus = Math.random()<0.01;	// make some blobs viruses
+		blobs[i].r = blobs[i].isVirus?  100:blobSize
 	}
 }
 
@@ -576,10 +631,10 @@ function drawBlobs() {
 	for (var i = 0; i < blobs.length; i++) {
 		if(!blobs[i].isVirus)
 		drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
-				blobSize, 6, blobs[i].color, blobs[i].ang);
+				blobs[i].r, 6, blobs[i].color, blobs[i].ang);
 		else
 		drawVirus(blobs[i].x - xshift, blobs[i].y - yshift,
-				100, 0);
+				blobs[i].r, 0);
 	}
 }
 
@@ -616,7 +671,7 @@ function drawVirus(x,y,rad,start){
 		cur += ang;
 	}
 	context.closePath();
-	context.fillStyle = "Chartreuse";
+	context.fillStyle = '#33FF33';
 	context.fill();
 }
 
@@ -625,18 +680,15 @@ function initFPS() {
 	for(var i=0; i < 10; i++) fps_arr.push(0.0);
 }
 
-function calcFPS(now){
-	function calAVG() {
-		   var count=0.0;
-		   for (var i=fps_arr.length; i--;) 
-		     count+=fps_arr[i];
-		   
-		   return Math.round(count/fps_arr.length);
+function calcFPS(now) {
+	function calAVG(){
+		var count=0.0;
+		for (var i=fps_arr.length; i--;) 
+		  count+=fps_arr[i];
+		return Math.round(count/fps_arr.length);
 	}
-
 	fps_arr[_ind_%10] = 1000.0/(now-absoluteTime);
 	_ind_++;
-
 	fps = calAVG();
 }
 
@@ -650,3 +702,20 @@ function distSq(x1,y1,x2,y2){
 	return (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
 }
 
+function detectCollision(org){
+	for (var i = 0; i < blobs.length; i++) {
+			var radSum = (org.sizeFinal+0);//blobs[i].r)  ;		
+			var distSqr = distSq(org.x, org.y, blobs[i].x, blobs[i].y);	
+			if(Math.pow(radSum, 2) - (blobs[i].isVirus? 25:0) > distSqr) { 
+				if(!blobs[i].isVirus){
+					blobs.splice(i,1);
+					return 1;			// virus center collision
+				}
+				else if(org.size - blobs[i].r > 5){
+					blobs.splice(i,1);
+					return 2;			// blob center collision
+				}
+			}
+	}
+	return -1;		// no center collision
+}
