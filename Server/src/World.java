@@ -87,13 +87,16 @@ public class World implements Runnable  {
 		// check for collision between mp's organs
 		for (int i = 0; i < curPlayer.size() - 1; i++) {
 			Organ org1 = curPlayer.get(i);
+			if(Math.abs(org1.size-org1.sizeFinal) > 1)
+				continue;
+
 			for (int j = i + 1; j < curPlayer.size(); j++) {
 				Organ org2 = curPlayer.get(j);
 
 				double radSum = org2.size + org1.size;        // sum of radii
 				double distSqr = distSq(org1.pos.x, org1.pos.y, org2.pos.x, org2.pos.y);    // distance between centers squared
 
-				if (radSum*radSum + 0.5 > distSqr) {        // if there's an intersection
+				if (radSum*radSum > distSqr) {        // if there's an intersection
 
 					double interleave = radSum - Math.sqrt(distSqr);    // how much are the two circles intersecting?  r1 + r2 - distance
 

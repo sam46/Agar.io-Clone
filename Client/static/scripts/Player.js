@@ -4,10 +4,10 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.y = ypos;
 	this.xspd = xSpd;
 	this.yspd = ySpd;
-	this.size = size;
+	this.size = size;	
+	this.sizeFinal = this.size;	// size will always try to approach sizeFinal. This enables animations. 
 	this.color = "blue"; //colors[Math.floor((Math.random() * colors.length))];
 	// Easing variables
-	this.applySizeEase = false;
 	this.massDelta = 0.0;
 	this.applyPosEase = false;
 	this.easeDist = 0.0;
@@ -15,118 +15,121 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.easey = 0.0;
 
 	// bounciness effect variables and function
-	this.equilibrium = [];	// original points at equilibrium
-	this.pts = [];
-	this.ptsCount = 0;	
-	this.restoreSpd = 0.026;
-	this._beg = 0;
-	this._var = 0;
+	// this.equilibrium = [];	// original points at equilibrium
+	// this.pts = [];
+	// this.ptsCount = 0;	
+	// this.restoreSpd = 0.0265;
+	// this._beg = 0;
+	// this._var = 0;
 
-	function copyPoint(src) {
-		return {
-			x : src.x,
-			y : src.y,
-			r : src.r,
-			th : src.th,
-		};
-	}
+	// function copyPoint(src) {
+	// 	return {
+	// 		x : src.x,
+	// 		y : src.y,
+	// 		r : src.r,
+	// 		th : src.th,
+	// 	};
+	// }
 
-	this.initPts = function() {
-		this.equilibrium = [];
-		this.pts = [];
-		this.ptsCount = Math.floor(this.size * 1.0);	// more points == finer outer shape and bounciness 
 
-		var ang = 0.0, incr = 2.0*Math.PI/this.ptsCount;
+	// this.initPts = function(resetPts) {
+	// 	this.equilibrium = [];		
+	// 	this.ptsCount = 400;	// more points == finer outer shape and bounciness. 
+	// 	if(resetPts)
+	// 		this.pts = [];
+
+	// 	var ang = 0.0, incr = 2.0*Math.PI/this.ptsCount;
 			
-		for (var i = 0; i < this.ptsCount; i++) {
-			// user is responsible for making sure polar and cartesian coords of points are matching, for now.
-			this.pts[i] = {
-				x:  Math.cos(ang)*this.size,
-				y:  Math.sin(ang)*this.size,	
-				th: ang,			// assert: th is always in [0, 2pi]
-				r: this.size
-			};
-			this.equilibrium[i] = copyPoint(this.pts[i]);
-			ang += incr;
-		}
+	// 	for (var i = 0; i < this.ptsCount; i++) {
+	// 		// user is responsible for making sure polar and cartesian coords of points are matching, for now.
+	// 		this.equilibrium[i] = {
+	// 			x:  Math.cos(ang)*this.size,
+	// 			y:  Math.sin(ang)*this.size,	
+	// 			th: ang,			// assert: th is always in [0, 2pi]
+	// 			r: this.size
+	// 		};
+	// 		if(resetPts)
+	// 			this.pts[i] = copyPoint(this.equilibrium[i]);
+	// 		ang += incr;
+	// 	}
 
-		//console.log("sides: "+this.ptsCount);
-	};
+	// 	//console.log("sides: "+this.ptsCount);
+	// };
 
-	// the angle of the impact point (from the player's POV), the radius of the arc (in radians) and intensity of the impact 
-	this.impact = function(ang, arcTheta, maxPush) {
-		arcTheta *= 0.5;	
+	// // the angle of the impact point (from the player's POV), the radius of the arc (in radians) and intensity of the impact 
+	// this.impact = function(ang, arcTheta, maxPush) {
+	// 	arcTheta *= 0.5;	
 
-		var hitSpot = {
-			x:  Math.cos(ang+Math.PI)*this.size,
-			y:  Math.sin(ang+Math.PI)*this.size,
-		};
+	// 	var hitSpot = {
+	// 		x:  Math.cos(ang+Math.PI)*this.size,
+	// 		y:  Math.sin(ang+Math.PI)*this.size,
+	// 	};
 
-		// determine (index of) the closest point to impact location
-		var ind = -1, max = -1;
-		for (var i = 0; i < this.pts.length; i++) {
-			var dist2 = distSq(this.pts[i].x, this.pts[i].y, hitSpot.x, hitSpot.y);
-			if(dist2 > max){
-				ind = i;
-				max = dist2
-			}
-		}
+	// 	// determine (index of) the closest point to impact location
+	// 	var ind = -1, max = -1;
+	// 	for (var i = 0; i < this.pts.length; i++) {
+	// 		var dist2 = distSq(this.pts[i].x, this.pts[i].y, hitSpot.x, hitSpot.y);
+	// 		if(dist2 > max){
+	// 			ind = i;
+	// 			max = dist2
+	// 		}
+	// 	}
 
-		hitSpot = copyPoint(this.pts[ind]);
+	// 	hitSpot = copyPoint(this.pts[ind]);
 
-		// how many neighboring points in either direction are gonna be affected ?
-		// we want an arc of angle theta to be affected on either side of the (new) hitSpot.
-		// each point on the arc will be pushed/displaced by some 
-		// amount acording to some function of it's proximity to the hitSpot
-		for (var i = 0; i < this.pts.length; i++) {
-			var curPt = this.pts[(i+ind)%this.pts.length];
+	// 	// how many neighboring points in either direction are gonna be affected ?
+	// 	// we want an arc of angle theta to be affected on either side of the (new) hitSpot.
+	// 	// each point on the arc will be pushed/displaced by some 
+	// 	// amount acording to some function of it's proximity to the hitSpot
+	// 	for (var i = 0; i < this.pts.length; i++) {
+	// 		var curPt = this.pts[(i+ind)%this.pts.length];
 
-			//if(this.equilibrium[(i+ind)%this.pts.length].r - curPt.r < 0.1)
-			//		continue;
+	// 		//if(this.equilibrium[(i+ind)%this.pts.length].r - curPt.r < 0.1)
+	// 		//		continue;
 
-			// smallest angle between the two points
-			var angularDist = Math.abs(curPt.th - hitSpot.th);
-			if(angularDist > Math.PI) angularDist = 2*Math.PI - angularDist;
+	// 		// smallest angle between the two points
+	// 		var angularDist = Math.abs(curPt.th - hitSpot.th);
+	// 		if(angularDist > Math.PI) angularDist = 2*Math.PI - angularDist;
 
-			// if the current point is within the affected arc:
-			if(angularDist <= arcTheta) {
-				var prox = Math.abs(1 - angularDist/arcTheta);	// normalize how close curPt to hitSpot is.
-				// the function we'll use for interpolating diplacement according to proximity
-				var f = function(x) {	// domain is [0,1]
-					return 6.0*Math.pow(x,5) - 15.0*Math.pow(x,4)+ 10.0*Math.pow(x,3);
-				}
-				var displacemntAmt = f(prox)* maxPush;
+	// 		// if the current point is within the affected arc:
+	// 		if(angularDist <= arcTheta) {
+	// 			var prox = Math.abs(1 - angularDist/arcTheta);	// normalize how close curPt to hitSpot is.
+	// 			// the function we'll use for interpolating diplacement according to proximity
+	// 			var f = function(x) {	// domain is [0,1]
+	// 				return 6.0*Math.pow(x,5) - 15.0*Math.pow(x,4)+ 10.0*Math.pow(x,3);
+	// 			}
+	// 			var displacemntAmt = f(prox)* maxPush;
 
-				// displace it: 
-				this.pts[(i+ind)%this.pts.length].x = Math.cos(curPt.th)*(curPt.r - displacemntAmt);
-				this.pts[(i+ind)%this.pts.length].y = Math.sin(curPt.th)*(curPt.r - displacemntAmt),
-				this.pts[(i+ind)%this.pts.length].r = curPt.r - displacemntAmt;
-			}
-		}
-	}
+	// 			// displace it: 
+	// 			this.pts[(i+ind)%this.pts.length].x = Math.cos(curPt.th)*(curPt.r - displacemntAmt);
+	// 			this.pts[(i+ind)%this.pts.length].y = Math.sin(curPt.th)*(curPt.r - displacemntAmt),
+	// 			this.pts[(i+ind)%this.pts.length].r = curPt.r - displacemntAmt;
+	// 		}
+	// 	}
+	// }
 
-	// restore the points closer to equilibrium
-	this.restore = function() {	
-		for (var i = 0; i < this.pts.length; i++) {
-			var diff = Math.abs(this.equilibrium[i].r - this.pts[i].r);
-			if( diff > 0.1 ) {
-				// the offest of the point from the equilibrium
-				var dist = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y,	
-					 this.equilibrium[i].x, this.equilibrium[i].y));		
+	// // restore the points closer to equilibrium
+	// this.restore = function() {	
+	// 	for (var i = 0; i < this.pts.length; i++) {
+	// 		var diff = Math.abs(this.equilibrium[i].r - this.pts[i].r);
+	// 		if( diff > 0.1 ) {
+	// 			// the offest of the point from the equilibrium
+	// 			var dist = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y,	
+	// 				 this.equilibrium[i].x, this.equilibrium[i].y));		
 
-				// move the point closer to equilibrium by a reatio of restoreSpd.
-				var ang = Math.atan2(this.pts[i].y, this.pts[i].x);
-				this.pts[i].x += Math.cos(ang)*dist*this.restoreSpd;
-				this.pts[i].y += Math.sin(ang)*dist*this.restoreSpd;
-				this.pts[i].r = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y, 0,0));
-			}
-			else {	// snap this point to equilibrium, it's very close to it
-				this.pts[i] = copyPoint(this.equilibrium[i]);
-			}			
-		}
-	}
+	// 			// move the point closer to equilibrium by a reatio of restoreSpd.
+	// 			var ang = Math.atan2(this.pts[i].y, this.pts[i].x);
+	// 			this.pts[i].x += Math.cos(ang)*dist*this.restoreSpd;
+	// 			this.pts[i].y += Math.sin(ang)*dist*this.restoreSpd;
+	// 			this.pts[i].r = Math.sqrt(distSq(this.pts[i].x, this.pts[i].y, 0,0));
+	// 		}
+	// 		else {	// snap this point to equilibrium, it's very close to it
+	// 			this.pts[i] = copyPoint(this.equilibrium[i]);
+	// 		}			
+	// 	}
+	// }
 
-	this.initPts();	// should be called everytime the size changes
+	// this.initPts(true);	// should be called everytime the size changes
 }
 
 Organ.prototype.move = function() {
@@ -135,21 +138,21 @@ Organ.prototype.move = function() {
 };
 
 Organ.prototype.update = function () {
-	this.restore();
+	//this.restore();
 	this.move();
 
-	// TODO: tweak correlation between movement and bounciness	
-	this._var++;
-	if(this._var % ripple.speed == 0){
-		var freq = Math.max(Math.random()*ripple.freq,1), ang =  Math.PI*2/freq;
-		this._beg += ang;
+	// // TODO: tweak correlation between movement and bounciness	
+	// this._var++;
+	// if(this._var % ripple.speed == 0){
+	// 	var freq = Math.max(Math.random()*ripple.freq,1), ang =  Math.PI*2/freq;
+	// 	this._beg += ang;
 
-		for (var i = 0; i < freq; i++) {
-			this.impact(i*ang + this._beg, Math.PI/freq, ripple.strength);
-		}
-	}
+	// 	for (var i = 0; i < freq; i++) {
+	// 		this.impact(i*ang + this._beg, Math.PI/freq, ripple.strength);
+	// 	}
+	// }
 
-	var dt = timestep/1000;
+	var dt = timestep/3500.0;
 	if(this.applyPosEase){
 		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
 		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
@@ -160,13 +163,16 @@ Organ.prototype.update = function () {
 		}
 	}
 
-	if(this.applySizeEase){
+	dt = timestep/400.0
+	if(Math.abs(this.sizeFinal - this.size) > 0.01){		// smoothly decrease mass if this organ has just been split/scattered
+		this.massDelta = this.sizeFinal - this.size;
+		//var isShrinking = this.massDelta < 0; 
 		this.size += ease_spd*dt*this.massDelta*ease_step;
 		this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
-		if(Math.abs(this.massDelta) <= 0.001)
-			this.applySizeEase = false;
+		if(Math.abs(this.massDelta) <= 0.01)
+			this.size = Math.round(this.size*10)/10.0;
 
-		this.initPts();		// size has changed... all bounciness variables need an update!!
+		//this.initPts(isShrinking);		// if the size is shrinking
 	}
 };
 
@@ -177,17 +183,13 @@ Organ.prototype.easePos = function(xdir, ydir) {
 	this.applyPosEase = true;
 };
 
-Organ.prototype.easeSize = function(mass_delta) {
-	this.massDelta = mass_delta;
-	this.applySizeEase = true;
-};
-
 Organ.prototype.split = function() {
-	this.easeSize(-this.size/2.0);
-	var org2 = new Organ(this.x, this.y, this.size/2,
+	this.sizeFinal /= 2.0;
+
+	var org2 = new Organ(this.x, this.y, Math.round(this.sizeFinal),
 	 		   this.xspd, this.yspd);
-	var norm = Math.sqrt((org2.xspd*org2.xspd) + (org2.yspd*org2.yspd));
-	org2.easePos(org2.xspd/norm, org2.yspd/norm);
+	var mag = Math.sqrt((org2.xspd*org2.xspd) + (org2.yspd*org2.yspd));
+	org2.easePos(org2.xspd/mag, org2.yspd/mag);
 
 	return org2;
 };
@@ -203,7 +205,7 @@ Organ.prototype.draw = function (context, name, isServer) {
 	
 	else {
 		// draw the organ main skeleton: connect pts[] with lines to give the organ it's circular bouncy shape, then fill.
-		var count = this.ptsCount;
+		/*var count = this.ptsCount;
 		context.beginPath();
 		context.moveTo(this.pts[0].x + this.x - xshift, this.pts[0].y + this.y-yshift);
 		for (var i = 0; i < count; i++) {
@@ -227,10 +229,10 @@ Organ.prototype.draw = function (context, name, isServer) {
 		context.fillStyle = 'rgba(0,0,200,0.9)';
 		context.fill();
 		context.restore();
-
-		/*
+		*/
+		
 		context.beginPath();
-		context.arc(this.x-xshift,this.y-yshift, this.size*0.88, 0,2*Math.PI);
+		context.arc(this.x-xshift,this.y-yshift, this.size, 0,2*Math.PI);
 		context.fillStyle = 'rgba(0,50,125,0.9)';
 		context.fill();
 		context.closePath();
@@ -240,7 +242,7 @@ Organ.prototype.draw = function (context, name, isServer) {
 		context.arc(this.x-xshift,this.y-yshift, this.size*0.4, 0,2*Math.PI);
 		context.fillStyle = 'rgba(0,50,200,0.2)';
 		context.fill();
-		context.closePath();*/
+		context.closePath();
 		
 		// show pts[] ?
 		if(showPts) {
@@ -291,16 +293,19 @@ Player.prototype.constrain = function(){	// constrain organs movements
 	}
 
 	// check for collision between mp's organs
-	var slack = 2;	// separate the two touching organs by some distance. TODO: take advantage of slack later to enable some effects (e.g. use sin() or make it negative)
 	for(var i = 0; i < this.organs.length-1; i++) {
 		var org1 = this.organs[i];
+		if(Math.abs(org1.size-org1.sizeFinal) > 1)
+			continue;
+
 		for(var j = i+1; j < this.organs.length; j++){
 			var org2 = this.organs[j];
 
-			var radSum = (org2.size+org1.size) + slack;		// sum of radii
+			var radSum = (org2.size+org1.size);		// sum of radii
 			var distSqr = distSq(org1.x, org1.y, org2.x, org2.y);	// distance between centers squared
-			
+
 			if(Math.pow(radSum, 2) > distSqr) {		// if there's an intersection 
+
 				var interleave = radSum - Math.sqrt(distSqr);	// how much are the two circles intersecting?  r1 + r2 - distnace
 				
 				// create a vector o12 going from org1 to org2
@@ -316,7 +321,7 @@ Player.prototype.constrain = function(){	// constrain organs movements
 				org1.lock = true;
 				org2.lock = true;
 			}
-
+		 
 		}
 
 	}
@@ -378,21 +383,21 @@ function copyPlayer(src, target, preserveBounce){
 		var temp = new Organ(curOrg.x, curOrg.y, curOrg.size,
 			curOrg.xspd, curOrg.yspd);
 		temp.lock = curOrg.lock;
-		temp.applySizeEase = curOrg.applySizeEase;
+		temp.sizeFinal = curOrg.sizeFinal;
 		temp.massDelta = curOrg.massDelta;
 		temp.applyPosEase = curOrg.applyPosEase;
 		temp.easeDist = curOrg.easeDist;
 		temp.easex = curOrg.easex;
 		temp.easey = curOrg.easey;
 
-		// we dont want mp's bounciness effects to be affected be all the reconiliation stuff. so we'll just preserver it
-		if(preserveBounce) {		temp.pts = [];
-		 	for (var j = 0; j < curOrg.pts.length; j++) 
-		 		temp.pts[j] = { x:curOrg.pts[j].x, y:curOrg.pts[j].y,
-		 		th:curOrg.pts[j].th, r:curOrg.pts[j].r };
-		 	temp._var = curOrg._var;
-		 	temp._beg = curOrg._beg;
-		}
+		// // we dont want mp's bounciness effects to be affected be all the reconiliation stuff. so we'll just preserver it
+		// if(preserveBounce) {		temp.pts = [];
+		//  	for (var j = 0; j < curOrg.pts.length; j++) 
+		//  		temp.pts[j] = { x:curOrg.pts[j].x, y:curOrg.pts[j].y,
+		//  		th:curOrg.pts[j].th, r:curOrg.pts[j].r };
+		//  	temp._var = curOrg._var;
+		//  	temp._beg = curOrg._beg;
+		// }
 
 		target.organs.push(temp);
 	}

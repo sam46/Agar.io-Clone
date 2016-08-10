@@ -64,8 +64,9 @@ function Connect(){
 			mp.organs[0].x = parseFloat(init_data[1]);
 			mp.organs[0].y = parseFloat(init_data[2]);
 			mp.organs[0].size = parseFloat(init_data[3]);
-			mp.organs[0].xspd = parseFloat(init_data[4]);
-			mp.organs[0].yspd = parseFloat(init_data[5]);
+			mp.organs[0].sizeFinal = parseFloat(init_data[4]);
+			mp.organs[0].xspd = parseFloat(init_data[5]);
+			mp.organs[0].yspd = parseFloat(init_data[6]);
 			mp.cmx = mp.organs[0].x;
 			mp.cmy = mp.organs[0].y;
 
@@ -110,7 +111,7 @@ function Connect(){
 			);
 			curOrg.lock =  parseInt(orgData[6]) ? true : false;
 			curOrg.applyPosEase = parseInt(orgData[7]) ? true : false;
-			curOrg.applySizeEase = parseInt(orgData[8]) ? true : false;
+			curOrg.sizeFinal = parseFloat(orgData[8]);
 			curOrg.massDelta = parseFloat(orgData[9]);
 			curOrg.easeDist = parseFloat(orgData[10]);
 			curOrg.easex = parseFloat(orgData[11]);

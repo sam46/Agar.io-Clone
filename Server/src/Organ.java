@@ -14,7 +14,7 @@ public class Organ extends GameObj {
 	private double easeDist,			// how far will the organ go when launched
 				  massDelta;		// how much will the increase/decrease in size be. could be + or -
 	private Vector easeVec;			// in which direction will the organ launch
-	public boolean applyPosEase = false, applySizeEase = false;
+	public boolean applyPosEase = false;
 
 	public Organ(int pid, double x, double y, double size, double xspd, double yspd) {
 		this.owner = pid;
@@ -23,6 +23,7 @@ public class Organ extends GameObj {
 		this.mpCM = new Vector(0,0, x, y);
 		this.mpDirect = new Vector(0,0, 0,0);
 		this.size = size;
+		this.sizeFinal = size;
 		this.easeVec = new Vector(0,0,0,0);
 	}
 	
@@ -43,15 +44,10 @@ public class Organ extends GameObj {
 		applyPosEase = true;
 	}
 
-	public void easeSize(double massDelta){		// smoothly change this organ's size by massDelta over many frames
-		this.massDelta = massDelta; 	
-		applySizeEase = true;
-	}
-	
 	public void update(){
-		double dt = GameDs.timestep/1000;
-
 		move();
+
+		double dt = GameDs.timestep/3500.0;
 		if(applyPosEase){	
 			pos.add(ease_spd*dt*easeVec.x*ease_step*easeDist, ease_spd*dt*easeVec.y*ease_step*easeDist);
 			easeDist -= ease_spd*dt*ease_step*easeDist;
@@ -60,21 +56,24 @@ public class Organ extends GameObj {
 				//lock = true;
 			}
 		}
-		
-		if(applySizeEase){
-			size += ease_spd*dt*massDelta*ease_step;
-			massDelta -= ease_spd*dt*massDelta*ease_step;
-			if(Math.abs(massDelta) <= 0.001)
-				applySizeEase = false;
+
+		dt = GameDs.timestep/400.0;
+		if(Math.abs(this.sizeFinal - this.size) > 0.01){		// smoothly decrease mass if this organ has just been split/scattered
+			this.massDelta = this.sizeFinal - this.size;
+			//var isShrinking = this.massDelta < 0;
+			this.size += ease_spd*dt*this.massDelta*ease_step;
+			this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
+			if(Math.abs(this.massDelta) <= 0.01)
+				this.size = Math.round(this.size*10)/10.0;
+
+			//this.initPts(isShrinking);		// if the size is shrinking
 		}
 	}
 	
 	public void move() {
 		pos.add(vel.x, vel.y);
 		if(Double.isNaN(pos.x) || Double.isNaN(pos.y)){
-			pos.print();
-			vel.print();
-			System.out.println("-----------------------------");
+			System.out.println("WARNING pos is NaN");
 		}
 
 		//teleport to the other side if beyond world space
@@ -85,12 +84,12 @@ public class Organ extends GameObj {
 	}
 
 	public Organ split(){
-		this.easeSize(-this.size/2.0);
+		this.sizeFinal /= 2.0;
 
-		Organ org2 = new Organ(this.owner, this.pos.x, this.pos.y, this.size/2,
+		Organ org2 = new Organ(this.owner, this.pos.x, this.pos.y, Math.round(this.sizeFinal),
 				this.vel.x, this.vel.y);
-		double norm = Math.sqrt((org2.vel.x*org2.vel.x) + (org2.vel.y*org2.vel.y));
-		org2.easePos(new Vector(0,0, org2.vel.x/norm, org2.vel.y/norm));
+		double mag = Math.sqrt((org2.vel.x*org2.vel.x) + (org2.vel.y*org2.vel.y));
+		org2.easePos(new Vector(0,0, org2.vel.x/mag, org2.vel.y/mag));
 
 		org2.lastAck = this.lastAck;
 		return org2;
@@ -106,7 +105,7 @@ public class Organ extends GameObj {
 				+vel.y+","					     // 5
 				+(lock ? "1":"0")+","			 // 6
 				+(applyPosEase ? "1":"0")+","	 // 7
-				+(applySizeEase ?"1":"0")+","	 // 8
+				+sizeFinal+","	 				 // 8
 				+massDelta+","					 // 9
 				+easeDist+","					 // 10
 				+easeVec.x+","					 // 11

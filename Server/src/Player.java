@@ -19,7 +19,7 @@ public class Player {
 		
 		myorgans = new ArrayList<Organ>();
 		Organ temp = new Organ(pid, rand.nextInt()%50, 0,
-				90, 0, 1);
+				90, 0, 8);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {
@@ -29,7 +29,8 @@ public class Player {
 	
 	public String getData(){	// will be used for first message only
 		return ""+conn.hashCode()+","+myorgans.get(0).pos.x+","+myorgans.get(0).pos.y+","+
-				myorgans.get(0).size+","+myorgans.get(0).vel.x+","+myorgans.get(0).vel.y;
+				myorgans.get(0).size+","+myorgans.get(0).sizeFinal+","+
+				myorgans.get(0).vel.x+","+myorgans.get(0).vel.y;
 	}
 
 	public void send(String data){
