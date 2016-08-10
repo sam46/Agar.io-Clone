@@ -6,7 +6,7 @@ The server is in Java. Client code utilizes HTML5 and Jquery.
 Server-Client communication is done using [web sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 
 ##### STILL A WORK IN PROGRESS!!
-![Image](snapshot.png)
+![Image](snapshot1.png)
 
 #### Gameplay
 Move with mouse, Shoot mass with a left-click.
