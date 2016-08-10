@@ -24,7 +24,7 @@ var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aq
     batch_size = 30,		// how many user inputs to handle and send each frame  TODO: tweak
     fps, fps_arr = [], _ind_ = 0,	// for showing fps
 	slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},			// organ collision slack parameters
-	ripple = {freq: 6, speed: 15, strength: 2.0},
+	ripple = {freq: 6, speed: 15, strength: 1.5},
 	showPts = false, disableClick = false;
 /*************************************************************************************************************************/
 function Organ(xpos, ypos, size, xSpd, ySpd) {
@@ -47,7 +47,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.equilibrium = [];	// original surface points at equilibrium
 	this.pts = [];		// surface points offseted from equilibrium, but always (should be) contained within the equilibrium surface
 	this.ptsCount = 0;		// how many points/sides to use for modeling the organ surface
-	this.restoreSpd = 0.026;	// how fast does pts[] try to reach equilibrium[] 
+	this.restoreSpd = 0.0265;	// how fast does pts[] try to reach equilibrium[] 
 	this._beg = 0;
 	this._var = 0;
 
@@ -62,7 +62,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 
 	this.initPts = function(resetPts) {
 		this.equilibrium = [];		
-		this.ptsCount = 200;	// more points == finer outer shape and bounciness. 
+		this.ptsCount = 400;	// more points == finer outer shape and bounciness. 
 		if(resetPts)
 			this.pts = [];
 
@@ -384,24 +384,29 @@ Player.prototype.calCM = function() {
 };
 
 Player.prototype.update = function (){
+	// handle collisions
 	var peices = [];
 	for(var i=0; i<this.organs.length; i++) {
 		var collision = detectCollision(this.organs[i]);
-		if(collision == 1){	// food blob
+		if(collision[0] == 1){	// food blob
 			this.organs[i].sizeFinal += 0.5;
-			//this.organs[i].size += 0.5;	
+			this.organs[i].impact(collision[1], Math.PI/8, 5);	// this makes the organ appear to be  consuming the blob
 		}
-		else if(collision == 2) {	// virus
+		else if(collision[0] == 2) {	// virus
 			var peicesTemp =  this.organs[i].scatter(this.cmx,this.cmy);
 			for (var j = 0; j < peicesTemp.length; j++) {
 				peices.push(peicesTemp[j]);
 			}
 			break; // TODO: investigate
 		}
+		else if(collision[0] == 3){
+			this.organs[i].impact(collision[1], Math.PI/8, collision[2]);
+		}
 	}
 	for (var i = 0; i < peices.length; i++)
 		this.organs.push(peices[i])
 
+	// update
 	for(var i=0; i<this.organs.length; i++) 
 		this.organs[i].update();
 	this.constrain();
@@ -453,7 +458,7 @@ function init(){
 
 	// initilaize player's properties
 	mp = new Player();
-	mp.organs.push(new Organ(0, 0, 155, 6, 4));  
+	mp.organs.push(new Organ(0, 0, 151, 1, 0));  
 	mp.cmx = mp.organs[0].x;						
 	mp.cmy = mp.organs[0].y; 
 
@@ -631,7 +636,7 @@ function drawBlobs() {
 	for (var i = 0; i < blobs.length; i++) {
 		if(!blobs[i].isVirus)
 		drawCircle(blobs[i].x - xshift, blobs[i].y - yshift,
-				blobs[i].r, 6, blobs[i].color, blobs[i].ang);
+				blobs[i].r, 7, blobs[i].color, blobs[i].ang);
 		else
 		drawVirus(blobs[i].x - xshift, blobs[i].y - yshift,
 				blobs[i].r, 0);
@@ -703,19 +708,37 @@ function distSq(x1,y1,x2,y2){
 }
 
 function detectCollision(org){
+	/*
+		return [case, hit angle, extent of intersection]
+
+		cases:
+			-1 no intersection
+			1 consume food
+			2 consume virus
+			3 intersection, no consumption
+	*/
+
 	for (var i = 0; i < blobs.length; i++) {
-			var radSum = (org.sizeFinal+0);//blobs[i].r)  ;		
+			var radSum = (org.sizeFinal + blobs[i].r);		
 			var distSqr = distSq(org.x, org.y, blobs[i].x, blobs[i].y);	
-			if(Math.pow(radSum, 2) - (blobs[i].isVirus? 25:0) > distSqr) { 
-				if(!blobs[i].isVirus){
-					blobs.splice(i,1);
-					return 1;			// virus center collision
+
+			if(Math.pow(radSum, 2) > distSqr) {  // intersection
+				var hitAng = Math.atan2(blobs[i].y - org.y, blobs[i].x - org.x);
+
+				if(distSqr <= org.sizeFinal*org.sizeFinal)	{ // if the center is within the organ, consume the blob
+					if(!blobs[i].isVirus){
+						blobs.splice(i,1);
+						return [1, hitAng, 1.0];			
+					}
+					else if(org.sizeFinal - blobs[i].r > 5)	{	// give some extra slack before the virus is consumed
+						blobs.splice(i,1);
+						return [2, hitAng, 1.0];			
+					}
 				}
-				else if(org.size - blobs[i].r > 5){
-					blobs.splice(i,1);
-					return 2;			// blob center collision
-				}
+
+				var interleave = radSum - Math.sqrt(distSqr);
+				return [3,hitAng, 1- interleave/blobs[i].r];
 			}
 	}
-	return -1;		// no center collision
+	return [-1,null,null];	
 }
