@@ -472,7 +472,7 @@ function init(){
 
 	t = 0;
 	accumulator = 0.0;
-	absoluteTime = 0.0;
+	absoluteTime = performance.now();
 	ready = true;
 	run(); // Start gameplay
 }
