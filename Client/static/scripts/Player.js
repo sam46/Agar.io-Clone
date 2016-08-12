@@ -347,26 +347,38 @@ Player.prototype.update = function (){
 	this.constrain();
 	this.calCM();
 };
-/*
-Player.prototype.interpolate = function(targetPlayer, rate) {
-	//var min = Math.min(this.organs.length, targetPlayer.organs.length);
-	if(this.organs.length != targetPlayer.organs.length)
-		return;
-	for (var i = 0; i < this.organs.length; i++) {
-		var targetX = targetPlayer.organs[i].x,
-			targetY = targetPlayer.organs[i].y;
 
-		var org = this.organs[i];
-		    mag   = rate * Math.sqrt( (org.x-targetX)*(org.x - targetX) + (org.y-targetY)*(org.y-targetY) ),
-		    xdir  = targetX - org.x,
-		    ydir  = targetY - org.y;
-		  	ang   = Math.atan2(ydir,xdir);
-		org.x += Math.cos(ang)*mag;
-		org.y += Math.sin(ang)*mag;
+// this function ONLY INTERPLOATES organs x,y and size properties
+Player.interpolate = function(srcState,targetState, amt) {	
+	var interpolatedState = new Player(src.pid);
+
+	if(targetState == null)		
+		copyPlayer(srcState, interpolatedState);
+	else if(srcState.organs.length != targetState.organs.length)		// if different number of organs, just return a copy of the target
+		copyPlayer(targetState, interpolatedState);
+	
+	else {
+		copyPlayer(srcState, interpolatedState);	// we'll use the srcState as base and started modifing position properties
+
+		//interpolatedState.cmx += lerp(srcState.cmx, targetState.cmx, amt);
+		//interpolatedState.cmx += lerp(srcState.cmx, targetState.cmx, amt);
+
+		for (var i = 0; i < srcState.organs.length; i++) {
+			var tx = targetState.organs[i].x,
+				ty = targetState.organs[i].y,
+				tSize = targetState.organs[i].size,
+				sx = srcState.organs[i].x,
+				sy = srcState.organs[i].y,
+				sSize = srcState.organs[i].size;
+
+			interpolatedState.organs[i].x += lerp(sx, tx, amt);
+			interpolatedState.organs[i].x += lerp(sy, ty, amt);
+			interpolatedState.organs[i].size += lerp(sSize, tSize, amt);
+		}
 	}
-	this.calCM();
+	return interpolatedState;
 };
-*/
+
 /**********************************************************************************/
 function copyPlayer(src, target, preserveBounce){
 	target.organs = [];
@@ -402,4 +414,8 @@ function copyPlayer(src, target, preserveBounce){
 		target.organs.push(temp);
 	}
 
+}
+
+function lerp(a,b,amt){
+	return (b-a)*amt;
 }

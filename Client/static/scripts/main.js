@@ -79,8 +79,7 @@ function Connect(){
 
 			t = 0;
 			accumulator = 0.0;
-			absoluteTime = 0.0;
-			//lastTime = performance.now();
+			absoluteTime = performance.now();
 			ready = true;
 
 			return;
@@ -94,7 +93,7 @@ function Connect(){
 		authState = null;
 		authState = new Object();
 		authState.organs = [];
-		op = [];
+		var op = [];		// store other players' states
 
 		var AllOrgs = String(e.data).split(';');		// organs/players are separated by ';'
 
@@ -133,13 +132,13 @@ function Connect(){
 				authState.seq = parseInt(orgData[17]);
 			}
 
-			// if this organ is now mp's:
+			///////// if this organ is not mp's: \\\\\\\\\\
 			else {
+				var owner = null;
 
 				// figure out which player this data is meant for
-				var owner = null;
 				for (var j = 0; j < op.length; j++) {
-					if(op[j].pid == parseInt(orgData[0])){
+					if(op[j].pid == parseInt(orgData[0])) {
 						owner = op[j];
 						break;
 					}
@@ -161,11 +160,27 @@ function Connect(){
 
 		}
 
+		// update opStates[] using the freshly constructed op[]
+		for (var i = 0; i < op.length; i++) {
+			var cur = op[i];
+			if(cur.pid in opStates) {	// if this player already has a record in opStates[] 
+				opStates[cur.pid].push(cur);
+
+				if(opStates[cur.pid].length > statesPerPlayer)	// if after adding this state there're more states than is allowed per player, get rid of the oldest state
+					opStates[cur.pid].splice(0,1);	
+			}
+			else {	// never-seen-before player
+				opStates[cur.pid] = []; // make a new array to hold his states
+				opStates[cur.pid].push(cur);
+			}
+
+		}
+
 	};	// end onmessage() ;
 
 	conn.onclose = function(e) {
 		ready = false;
-	    setTimeout(Connect, 5000);
+	    //setTimeout(Connect, 5000);
 	};
 
 	function addEventListeners(){
@@ -265,7 +280,7 @@ function run() {		// Main game-loop function
 			var newTime = performance.now()*1.0;
 			calcFPS(newTime);
 			var deltaTime = newTime - absoluteTime;
-			if(deltaTime > 200) deltaTime = timestep;
+
 			if(deltaTime > 0.0)	{
 				absoluteTime = newTime;
 				accumulator += deltaTime;
@@ -291,9 +306,11 @@ function run() {		// Main game-loop function
 		for(var i=0; i<mp.organs.length; i++)
 			mp.organs[i].draw(context, "Player");
 
-		for(var i=0; i<op.length; i++){
-			for (var j = 0; j < op[i].organs.length; j++) {	
-				op[i].organs[j].draw(context, "other");
+		for(i in opStates){
+			var curPlayerStates = opStates[i];
+			var mostRecent = curPlayerStates[curPlayerStates.length-1];
+			for (var j = 0; j < mostRecent.organs.length; j++) {	
+				mostRecent.organs[j].draw(context, "other");
 			}
 		}
 

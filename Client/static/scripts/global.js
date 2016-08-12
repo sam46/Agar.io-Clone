@@ -7,7 +7,6 @@ let blobSize = 12,	// blob radius on screen
 /* Other variables */
 
 let ip_address = "localhost", port = "8080", conn,
-    op = [],    // other players
     colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"],
     wrdWidth = 2000*3, wrdHeight = 2000*3,				// world dimensions
     width,height,                           //  window width and height
@@ -22,7 +21,8 @@ let authState = null,           // the server's authoritative raw state of the m
     predictedState = null;		
     pendingInputs = []
     prediction = true, reconciliation = true,       
-    authStateBackup = null;       // for rendering raw server output
+    authStateBackup = null,       // for rendering raw server output
+    opStates = {}, statesPerPlayer = 3;    // other players
 
 let slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},           // organ collision slack parameters
     ripple = {freq: 6, speed: 15, strength: 2.0},

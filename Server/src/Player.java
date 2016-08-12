@@ -18,8 +18,8 @@ public class Player {
 		pid = ws.hashCode();		// the player id will just be the hash of the websocket
 		
 		myorgans = new ArrayList<Organ>();
-		Organ temp = new Organ(pid, rand.nextInt()%50, 0,
-				90, 0, 8);
+		Organ temp = new Organ(pid, 0, 0,
+				90, 0, 12);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {

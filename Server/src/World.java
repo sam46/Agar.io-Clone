@@ -38,11 +38,7 @@ public class World implements Runnable  {
 		}
 	}
 	*/
-	
-	// Collision between a blob and an organ
-	private void orgblobCollision(){
-		
-	}
+
 	
 	// Send new data to msg buffer to be handled by the broa	dcasting thread
 	private void dispatchToMsgBuf(){
@@ -179,7 +175,7 @@ public class World implements Runnable  {
 		int t = 0;
 		double accumulator = 0.0;
 		double timestep = GameDs.timestep;
-		double absoluteTime = 0.0;
+		double absoluteTime = System.currentTimeMillis();
 
 		while(true) {
 			copyOrgansList();		// oLck blocking
@@ -190,8 +186,8 @@ public class World implements Runnable  {
 			double newTime = System.currentTimeMillis();
 			double deltaTime = newTime - absoluteTime;
 
-			if(deltaTime > 200)
-				deltaTime = timestep;
+//			if(deltaTime > 200)
+//				deltaTime = timestep;
 
 			if(deltaTime > 0.0) {
 				absoluteTime = newTime;

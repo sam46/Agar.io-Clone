@@ -27,16 +27,6 @@ public class Organ extends GameObj {
 		this.easeVec = new Vector(0,0,0,0);
 	}
 	
-	@Override
-	public void absorb(GameObj small){
-		
-	}
-
-	@Override
-	public void consume(GameObj big) {
-
-	}
-	
 	public void easePos(Vector easeVec){			// give this organ launch speed which will smoothly affect its pos over many frames
 		//easeVec = new Vector(ang, 1.0f);	// unit direction vector
 		this.easeVec = easeVec;
@@ -95,26 +85,30 @@ public class Organ extends GameObj {
 		return org2;
 	}
 
+	static String format(double dbl){
+		return String.valueOf(  Math.round(dbl*100)/100.0   );
+	}
+
 	// TODO: implement this functionality with a better de/serialization mechanism
 	public String getData() {
-		return  owner+","						 // 0
-				+pos.x+","						 // 1
-				+pos.y+","						 // 2
-				+size + ","						 // 3
-				+vel.x+","						 // 4
-				+vel.y+","					     // 5
-				+(lock ? "1":"0")+","			 // 6
-				+(applyPosEase ? "1":"0")+","	 // 7
-				+sizeFinal+","	 				 // 8
-				+massDelta+","					 // 9
-				+easeDist+","					 // 10
-				+easeVec.x+","					 // 11
-				+easeVec.y+","					 // 12
-				+mpDirect.x+","					 // 13
-				+mpDirect.y+"," 				 // 14
-				+mpCM.x+","						 // 15
-				+mpCM.y+","						 // 16
-				+lastAck;						 // 17
+		return  owner+","							// 0
+				+format(pos.x)+","					// 1
+				+format(pos.y)+","					// 2
+				+format(size )+ ","					// 3
+				+format(vel.x)+","					// 4
+				+format(vel.y)+","					// 5
+				+(lock ? "1":"0")+","				// 6
+				+(applyPosEase ? "1":"0")+","		// 7
+				+format(sizeFinal)+","	 			// 8
+				+format(massDelta)+","				// 9
+				+format(easeDist)+","				// 10
+				+format(easeVec.x)+","				// 11
+				+format(easeVec.y)+","				// 12
+				+format(mpDirect.x)+","				// 13
+				+format(mpDirect.y)+"," 			// 14
+				+format(mpCM.x)+","					// 15
+				+format(mpCM.y)+","					// 16
+				+lastAck;							// 17
 	}
 	
 }
