@@ -493,7 +493,7 @@ function addEventListeners(){
 		inBuff.push({	
 			xdir : event.clientX-(width/2.0),
 			ydir : event.clientY-(height/2.0),
-			inType : !disableClick ? "mm" : "md"
+			inType : "md"
 		});
 	});
 }
