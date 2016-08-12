@@ -511,7 +511,7 @@ function run() {		// Main game-loop function
 		var newTime = performance.now()*1.0;
 		calcFPS(newTime);
 		var deltaTime = newTime - absoluteTime;
-		if(deltaTime > 200) deltaTime = timestep;
+		//if(deltaTime > 200) deltaTime = timestep;
 		if(deltaTime > 0.0)	{
 			absoluteTime = newTime;
 			accumulator += deltaTime;
