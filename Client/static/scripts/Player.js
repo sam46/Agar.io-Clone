@@ -348,12 +348,13 @@ Player.prototype.update = function (){
 	this.calCM();
 };
 
-// this function ONLY INTERPLOATES organs x,y and size properties
-Player.interpolate = function(srcState,targetState, amt) {	
-	var interpolatedState = new Player(src.pid);
+// this function ONLY INTERPLOATES organs x,y and size properties. 
+// progress is in [0,1] indicating where the result will be within the range of [src,target]
+Player.interpolate = function(srcState,targetState, progress) {	
+	var interpolatedState = new Player(srcState.pid);
 
 	if(targetState == null)		
-		copyPlayer(srcState, interpolatedState);
+		console.log("Warning: targetState is null");//copyPlayer(srcState, interpolatedState);
 	else if(srcState.organs.length != targetState.organs.length)		// if different number of organs, just return a copy of the target
 		copyPlayer(targetState, interpolatedState);
 	
@@ -371,9 +372,9 @@ Player.interpolate = function(srcState,targetState, amt) {
 				sy = srcState.organs[i].y,
 				sSize = srcState.organs[i].size;
 
-			interpolatedState.organs[i].x += lerp(sx, tx, amt);
-			interpolatedState.organs[i].x += lerp(sy, ty, amt);
-			interpolatedState.organs[i].size += lerp(sSize, tSize, amt);
+			interpolatedState.organs[i].x = /*lerp(sx,tx,progress)*/map(progress,0,1,sx,tx);
+			interpolatedState.organs[i].y = /*lerp(sy,ty,progress)*/map(progress,0,1,sy,ty);
+			interpolatedState.organs[i].size = map(progress,0,1,sSize,tSize);
 		}
 	}
 	return interpolatedState;
@@ -410,12 +411,16 @@ function copyPlayer(src, target, preserveBounce){
 		//  	temp._var = curOrg._var;
 		//  	temp._beg = curOrg._beg;
 		// }
-
+ 
 		target.organs.push(temp);
 	}
 
 }
 
+//adapted from p5.js
 function lerp(a,b,amt){
 	return (b-a)*amt;
+}
+function map(n, start1, stop1, start2, stop2) {
+  return ((n-start1)/(stop1-start1)) * (stop2-start2)  + start2;
 }

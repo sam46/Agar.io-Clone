@@ -163,10 +163,13 @@ function Connect(){
 		// update opStates[] using the freshly constructed op[]
 		for (var i = 0; i < op.length; i++) {
 			var cur = op[i];
+			cur.timestamp = performance.now();	// attach a timestamp to this state
+
 			if(cur.pid in opStates) {	// if this player already has a record in opStates[] 
+				
 				opStates[cur.pid].push(cur);
 
-				if(opStates[cur.pid].length > statesPerPlayer)	// if after adding this state there're more states than is allowed per player, get rid of the oldest state
+				if(opStates[cur.pid].length > 2) //statesPerPlayer)	// if after adding this state there're more states than is allowed per player, get rid of the oldest state
 					opStates[cur.pid].splice(0,1);	
 			}
 			else {	// never-seen-before player
@@ -204,6 +207,14 @@ function Connect(){
 			});
 			inSeq++;
 		});
+
+		// document.body.addEventListener("wheel", function(WheelEvent) {
+		// 	wheel += -WheelEvent.deltaY/100;
+		// 	amtConst += wheel*0.05;
+		// 	amtConst = Math.max(0,amtConst);
+		// 	amtConst = Math.min(amtConst,1);
+		// 	console.log(amtConst);
+		// });
 
 		window.onkeyup = function(e) {
 		    var key = e.keyCode ? e.keyCode : e.which;
@@ -261,11 +272,12 @@ function processServerMsg() {
 	return true;
 }
 
+var frameNum = 0;
+
 function run() {		// Main game-loop function
 	if(ready) {
-
 		var recievedState = processServerMsg();		// Set mp's state according to server's authoritative msg. Also do reconciliation if enabled.
-
+		var otherPlayersInterpolated = [];
 		var batchSize = batch_size; // multiple mouse inputs could be coming in a frame, so we have to process multiple per frame.
 		while(batchSize-- > 0 && inBuff.length > 0) {
 			var input = inBuff.shift();			// shift() removes the first element... thus inBuffs functions as a queue
@@ -274,28 +286,50 @@ function run() {		// Main game-loop function
 			if(prediction) applyInput(input);	// client-prediction for input
 		}
 
-		if(prediction) {	// client-prediction for physics/state
+		// Fixed timestep: courtesy of Glenn Fiedler of gafferongames.com
+		var newTime = performance.now()*1.0;
+		calcFPS(newTime);
+		var deltaTime = newTime - absoluteTime;
 
-			// Fixed timestep: courtesy of Glenn Fiedler of gafferongames.com
-			var newTime = performance.now()*1.0;
-			calcFPS(newTime);
-			var deltaTime = newTime - absoluteTime;
+		if(deltaTime > 0.0)	{
+			absoluteTime = newTime;
+			accumulator += deltaTime;
 
-			if(deltaTime > 0.0)	{
-				absoluteTime = newTime;
-				accumulator += deltaTime;
-				while(accumulator >= timestep) {		
-					mp.update();
-					accumulator -= timestep;
-					t++;					
-				}
+			while(accumulator >= timestep) {		
+				if(prediction) 	mp.update(); // client-prediction for physics/state
+
+				accumulator -= timestep;
+				t++;					
 			}
 
-			// save the state after prediction for later reconiliation 
+
+			// interpolate other players' positions, save the resulting player in otherPlayersInterpolated to draw them later
+			for(i in opStates) { // foreach other-player
+				// pick the most two recent states recieved from server.
+				// figure out where exactly the (delayed) current time falls within the time of the two states.
+				// interpolate and store the result.
+				var curPlayerStates = opStates[i];
+				var result;
+				if(curPlayerStates.length == 2) {	
+					var diff = 100;	// server message-send interval
+					var progress =  (performance.now() - curPlayerStates[0].timestamp - diff)/ (curPlayerStates[1].timestamp - curPlayerStates[0].timestamp);
+					progress = Math.min(progress,1.0);
+					result = Player.interpolate(curPlayerStates[0],curPlayerStates[1], progress);
+				}
+				else	// if we havent received enough states for interpolation, just render the one we have
+					result = curPlayerStates[0];
+				
+				otherPlayersInterpolated.push(result);
+			}	
+			
+		}
+
+		// save the state after prediction for later reconiliation 
+		if(prediction) {
 			predictedState = new Player(mp.pid);
 			copyPlayer(mp, predictedState, true);
 		}
-
+		
 		/****** Rendering ******/
 		context.clearRect(0, 0, width, height);
 		xshift = mp.cmx - width/2;
@@ -303,17 +337,17 @@ function run() {		// Main game-loop function
 		drawGrid();
 		drawBlobs();
 
+		// draw main player
 		for(var i=0; i<mp.organs.length; i++)
 			mp.organs[i].draw(context, "Player");
 
-		for(i in opStates){
-			var curPlayerStates = opStates[i];
-			var mostRecent = curPlayerStates[curPlayerStates.length-1];
-			for (var j = 0; j < mostRecent.organs.length; j++) {	
-				mostRecent.organs[j].draw(context, "other");
-			}
+		// draw other player
+		for (var i = 0; i < otherPlayersInterpolated.length; i++) {
+			for (var j = 0; j < otherPlayersInterpolated[i].organs.length; j++) 
+				otherPlayersInterpolated[i].organs[j].draw(context, "other");
 		}
 
+		// draw server
 		if(showServer)
 			for(var i=0; i<authStateBackup.organs.length; i++) // draw the server's
 				authStateBackup.organs[i].draw(context, "Server",true);
@@ -562,10 +596,5 @@ function compUV(ux,uy,vx,vy){		// component of u along v
 	       ;
 	   }
 	}
-	document.body.addEventListener("wheel", function(WheelEvent) {
-		wheel += -WheelEvent.deltaY/100;
-		console.log(wheel)
-		panel_col = 5*Math.floor(wheel);
-		panel.style.background = "rgba("+panel_col+","+panel_col+","+panel_col+", 0.85)";
-	});
+
 */

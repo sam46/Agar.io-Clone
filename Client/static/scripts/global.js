@@ -22,7 +22,7 @@ let authState = null,           // the server's authoritative raw state of the m
     pendingInputs = []
     prediction = true, reconciliation = true,       
     authStateBackup = null,       // for rendering raw server output
-    opStates = {}, statesPerPlayer = 3;    // other players
+    opStates = {};//, statesPerPlayer = 3;    // other players
 
 let slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},           // organ collision slack parameters
     ripple = {freq: 6, speed: 15, strength: 2.0},
