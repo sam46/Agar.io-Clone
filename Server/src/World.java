@@ -42,12 +42,17 @@ public class World implements Runnable  {
 	
 	// Send new data to msg buffer to be handled by the broa	dcasting thread
 	private void dispatchToMsgBuf(){
+		boolean first = true;
 		synchronized (GameDs.mLck) {
 			GameDs.msgBuf.clear();		// drop messages that weren't sent. TODO: this may be unnecessary, since broadcaster will block till the buffer is empty
-			for (List<Organ> orgList : organsListsCopy)
+			for (List<Organ> orgList : organsListsCopy) {
+				first = true;
 				for (Organ org : orgList) {
-					GameDs.msgBuf.add(org.getData());
+					// only append player properties to organs data when it's the first organ
+					GameDs.msgBuf.add(org.getData(first));
+					first = false;
 				}
+			}
 		}
 	}
 

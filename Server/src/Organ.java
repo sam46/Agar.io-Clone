@@ -4,11 +4,14 @@
 *******************************************************/
 
 public class Organ extends GameObj {
-	public int lastAck = -1;		// last acknowledged/processed input
+	//Player properties:  (shared between all organs of the player)
 	public int owner;				// the pid of the player owning this organ
-	public boolean lock = false;
+	public int lastAck = -1;		// last acknowledged/processed input
 	public Vector mpDirect;			// player's direction
 	public Vector  mpCM;			// player's CM
+
+	// Organ properties:
+	public boolean lock = false;
 	/* Easing variables */
 	private static final double ease_step = 0.45, ease_spd = 10;		// control the speed of the easing and how many frames it takes to finish
 	private double easeDist,			// how far will the organ go when launched
@@ -90,25 +93,29 @@ public class Organ extends GameObj {
 	}
 
 	// TODO: implement this functionality with a better de/serialization mechanism
-	public String getData() {
-		return  owner+","							// 0
-				+format(pos.x)+","					// 1
-				+format(pos.y)+","					// 2
-				+format(size )+ ","					// 3
-				+format(vel.x)+","					// 4
-				+format(vel.y)+","					// 5
-				+(lock ? "1":"0")+","				// 6
-				+(applyPosEase ? "1":"0")+","		// 7
-				+format(sizeFinal)+","	 			// 8
-				+format(massDelta)+","				// 9
-				+format(easeDist)+","				// 10
-				+format(easeVec.x)+","				// 11
-				+format(easeVec.y)+","				// 12
+	public String getData(boolean appendPlayerProperties) {
+		String str = "";
+		if(appendPlayerProperties)
+			str +=  ","+owner+","						// 12
 				+format(mpDirect.x)+","				// 13
 				+format(mpDirect.y)+"," 			// 14
 				+format(mpCM.x)+","					// 15
 				+format(mpCM.y)+","					// 16
 				+lastAck;							// 17
+
+		return   format(pos.x)+","					// 0
+				+format(pos.y)+","					// 1
+				+format(size )+ ","					// 2
+				+format(vel.x)+","					// 3
+				+format(vel.y)+","					// 4
+				+(lock ? "1":"0")+","				// 5
+				+(applyPosEase ? "1":"0")+","		// 6
+				+format(sizeFinal)+","	 			// 7
+				+format(massDelta)+","				// 8
+				+format(easeDist)+","				// 9
+				+format(easeVec.x)+","				// 10
+				+format(easeVec.y)+				// 11
+				str;
 	}
 	
 }

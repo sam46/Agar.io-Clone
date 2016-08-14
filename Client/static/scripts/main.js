@@ -87,7 +87,7 @@ function Connect(){
 
 		// messages from now on will contain all organs present on the server, so filtering is required.
 		
-        // authState has the same properties as mp. A state is almost a Player() object more or less
+        // authState has the same properties as mp. A state is almost a Player() object more or less.
         // We'll fill the authState with the data we recieved
         // TODO: implement this functionality with a better de/serialization mechanism
 		authState = null;
@@ -97,39 +97,44 @@ function Connect(){
 
 		var AllOrgs = String(e.data).split(';');		// organs/players are separated by ';'
 
+		// scan the message organ by organ. Organs belonging to the same player come in one row. we'll know we've hit a new player when the organ has more data
+		var curPlayerId;
 		for (var i=0; i < AllOrgs.length; i++) { 		// for each organ in the server's message:
 			// player/organs' properties are separated by ','
 			var orgData = AllOrgs[i].split(',');
 
+			if(orgData.length == 18)	// if this is the first organ for the current player:
+				curPlayerId = parseInt(orgData[12]);	
+
 			// construct the organ object from the data recieved
-			var curOrg = new Organ( parseFloat(orgData[1]),
+			var curOrg = new Organ( parseFloat(orgData[0]),
+				parseFloat(orgData[1]),
 				parseFloat(orgData[2]),
 				parseFloat(orgData[3]),
-				parseFloat(orgData[4]),
-				parseFloat(orgData[5])
+				parseFloat(orgData[4])
 			);
-			curOrg.lock =  parseInt(orgData[6]) ? true : false;
-			curOrg.applyPosEase = parseInt(orgData[7]) ? true : false;
-			curOrg.sizeFinal = parseFloat(orgData[8]);
-			curOrg.massDelta = parseFloat(orgData[9]);
-			curOrg.easeDist = parseFloat(orgData[10]);
-			curOrg.easex = parseFloat(orgData[11]);
-			curOrg.easey = parseFloat(orgData[12]);
+			curOrg.lock =  parseInt(orgData[5]) ? true : false;
+			curOrg.applyPosEase = parseInt(orgData[6]) ? true : false;
+			curOrg.sizeFinal = parseFloat(orgData[7]);
+			curOrg.massDelta = parseFloat(orgData[8]);
+			curOrg.easeDist = parseFloat(orgData[9]);
+			curOrg.easex = parseFloat(orgData[10]);
+			curOrg.easey = parseFloat(orgData[11]);
 
 			// if this organ is mp's
-			if(mp.pid == parseInt(orgData[0])) {
+			if(mp.pid == curPlayerId) {
 				// we'll put the data meant for mp in authState
+				//console.log('ok');
 				authState.organs.push(curOrg);
-			
-			// those properties are for the player, not for the organs, but for now the server appends the player's data to each of his organs.
-			// they should really be added, sent and read just once though (instead of in a loop) since they're shared among all organs
-			// to avoid redundancy and bandwidth consumption
-				authState.pid = parseInt(orgData[0]);
-				authState.directX = parseFloat(orgData[13]);
-				authState.directY = parseFloat(orgData[14]);
-				authState.cmx = parseFloat(orgData[15]);
-				authState.cmy = parseFloat(orgData[16]);
-				authState.seq = parseInt(orgData[17]);
+
+				if(orgData.length == 18) {	// if this is the first organ for the current player, use the additional data it has
+					authState.pid = curPlayerId;
+					authState.directX = parseFloat(orgData[13]);
+					authState.directY = parseFloat(orgData[14]);
+					authState.cmx = parseFloat(orgData[15]);
+					authState.cmy = parseFloat(orgData[16]);
+					authState.seq = parseInt(orgData[17]);
+				}
 			}
 
 			///////// if this organ is not mp's: \\\\\\\\\\
@@ -138,23 +143,25 @@ function Connect(){
 
 				// figure out which player this data is meant for
 				for (var j = 0; j < op.length; j++) {
-					if(op[j].pid == parseInt(orgData[0])) {
+					if(op[j].pid == curPlayerId) {
 						owner = op[j];
 						break;
 					}
 				}
 
 				if(owner == null) {	// if this organ/data doesnt belong to any player in op[], create a new player and give it to him
-					owner = new Player(parseInt(orgData[0]));
+					owner = new Player(curPlayerId);
 					op.push(owner);
 				}
 
 				owner.organs.push(curOrg);	
-				owner.directX = parseFloat(orgData[13]);
-				owner.directY = parseFloat(orgData[14]);
-				owner.cmx = parseFloat(orgData[15]);
-				owner.cmy = parseFloat(orgData[16]);
-				owner.seq = parseInt(orgData[17]);
+				if(orgData.length == 18) { // if the organ has the additional data appended to it:
+					owner.directX = parseFloat(orgData[13]);
+					owner.directY = parseFloat(orgData[14]);
+					owner.cmx = parseFloat(orgData[15]);
+					owner.cmy = parseFloat(orgData[16]);
+					owner.seq = parseInt(orgData[17]);
+				}
 
 			}
 
@@ -173,7 +180,7 @@ function Connect(){
 					opStates[cur.pid].splice(0,1);	
 			}
 			else {	// never-seen-before player
-				opStates[cur.pid] = []; // make a new array to hold his states
+				opStates[cur.pid] = []; // make a new sarray to hold his states
 				opStates[cur.pid].push(cur);
 			}
 

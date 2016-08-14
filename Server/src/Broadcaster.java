@@ -8,11 +8,12 @@ import org.java_websocket.WebSocket;
 *******************************************************/
 
 public class Broadcaster implements Runnable {
-
+	static int counter = 0;
+	static int bandwidth = 0;
 	@Override
 	public void run() {
 		while(true) {
-
+			counter++;
 			String data = "";
 		
 			synchronized (GameDs.mLck) {
@@ -21,6 +22,13 @@ public class Broadcaster implements Runnable {
 			}
 			if(!data.isEmpty()) {
 				data = data.substring(0, data.length() - 1);
+
+				bandwidth += data.length()*2;
+				if(counter >= 10) {
+					System.out.println( Math.round(bandwidth*10/1024.0)/10.0+ "  KBps per player");
+					counter = 0;
+					bandwidth = 0;
+				}
 
 				synchronized (GameDs.cLck) {
 					for (WebSocket conn : GameDs.connections)

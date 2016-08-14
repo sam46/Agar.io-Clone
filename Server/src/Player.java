@@ -11,7 +11,7 @@ public class Player {
 	WebSocket conn;
 	String name;
 	int pid;	// player id
-	
+
 	public Player(WebSocket ws){
 		conn = ws;
 		Random rand = new Random();
@@ -19,7 +19,7 @@ public class Player {
 		
 		myorgans = new ArrayList<Organ>();
 		Organ temp = new Organ(pid, 0, 0,
-				90, 0, 12);
+				90, 0, 7);
 		myorgans.add(temp);
 		
 		synchronized (GameDs.oLck) {
