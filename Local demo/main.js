@@ -12,6 +12,7 @@ var blobSize = 12,	// blob radius on screen
  	blobFactor = 20, // how much size increases by eating a blob
  	blobs = [];		// for now, this contains food blobs and viruses
 
+
 /* Other variables */
 var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aqua", "bronze", "red"],
 	colorPresets = [['#E59E06','#FFB007'],['#91E506','#A2FF07'],['#063ED5','#0745FF'],['#06BBE5','#07D0FF']], mpColor = Math.floor(Math.random()*4),
@@ -25,16 +26,19 @@ var colors = ["magenta", "yellow", "purple", "pink", "chartreuse", "orange", "aq
     fps, fps_arr = [], _ind_ = 0,	// for showing fps
 	slk = {_slk : 0.0, _slk1 : 0.0, _slk2 : 0.0, _slk3 :0.0},			// organ collision slack parameters
 	ripple = {freq: 6, speed: 15, strength: 1.5},
-	showPts = false, disableClick = false;
+	showPts = false, disableClick = false,
+	thrustControlRadius = Math.pow(50,2);
 /*************************************************************************************************************************/
-function Organ(xpos, ypos, size, xSpd, ySpd) {
+function Organ(xpos, ypos, size, xSpd, ySpd, maxSpd) {
 	this.lock = false;		// prevent organ from going apart and lock it in place (relative to CM)
 	this.x = xpos;
 	this.y = ypos;
 	this.xspd = xSpd;
 	this.yspd = ySpd;
+	this.maxspd = maxSpd; 
 	this.size = size;
-	this.sizeFinal = this.size;	// size will always try to approach sizeFinal. This enables animations. 
+	this.sizeFinal = this.size;	// size will always try to approach sizeFinal. This enables animations. 	
+	this.connectedOrgans = [this];	// keep track of touching organs
 	this.color = 'red';
 	// Easing/interpolation variables
 	this.massDelta = 0.0;
@@ -97,9 +101,9 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 		var ind = -1, max = -1;	
 		for (var i = 0; i < this.pts.length; i++) {
 			var dist2 = distSq(this.pts[i].x, this.pts[i].y, hitSpot.x, hitSpot.y);
-			if(dist2 > max){
+			if(dist2 > max) {
 				ind = i;
-				max = dist2
+				max = dist2;
 			}
 		}
 
@@ -125,7 +129,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 				// the function we'll use for interpolating diplacement according to proximity
 				var f = function(x) {	// domain is [0,1]
 					return 6.0*Math.pow(x,5) - 15.0*Math.pow(x,4)+ 10.0*Math.pow(x,3);
-				}
+				};
 				var displacemntAmt = f(prox)* maxPush;
 
 				// displace it: 
@@ -176,7 +180,7 @@ Organ.prototype.split = function() {
 	this.sizeFinal /= 2.0;
 
 	var org2 = new Organ(this.x, this.y, Math.round(this.sizeFinal),
-	 		   this.xspd, this.yspd);
+	  		   this.xspd, this.yspd, this.maxspd);
 	var mag = Math.sqrt((org2.xspd*org2.xspd) + (org2.yspd*org2.yspd));
 	org2.easePos(org2.xspd/mag, org2.yspd/mag);
 
@@ -242,7 +246,7 @@ Organ.prototype.update = function () {
 		var isShrinking = this.massDelta < 0; 
 		this.size += ease_spd*dt*this.massDelta*ease_step;
 		this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
-		if(Math.abs(this.massDelta) <= 0.01)
+		if(this.massDelta <= 0.01)
 			this.size = Math.round(this.size*10)/10.0;
 
 		this.initPts(isShrinking);		// if the size is shrinking
@@ -362,6 +366,19 @@ Player.prototype.constrain = function(){	// constrain organs movements
 
 				org1.lock = true;
 				org2.lock = true;
+
+				// make the two organs connected to each other (touching)
+				var found = false;
+				for(var k =0; k < org1.connectedOrgans.length; k++) {
+					if(org2 === org1.connectedOrgans[k]) {
+						found = true;
+						break;
+					}
+				}	
+				if(!found){
+					org1.connectedOrgans.push(org2);
+					org2.connectedOrgans.push(org1);
+				}
 			}
 		 
 		}
@@ -458,10 +475,9 @@ function init(){
 
 	// initilaize player's properties
 	mp = new Player();
-	mp.organs.push(new Organ(0, 0, 151, 1, 0));  
+	mp.organs.push(new Organ(0, 0, 151, 1, 0,8));  
 	mp.cmx = mp.organs[0].x;						
 	mp.cmy = mp.organs[0].y; 
-
 
 	addEventListeners();
 	infoPan.show();	
@@ -478,7 +494,6 @@ function init(){
 }
 
 function addEventListeners(){
-
 	// mouse click to fire
 	document.body.addEventListener("mousemove", function(event) {
 		inBuff.push({	
@@ -500,13 +515,8 @@ function addEventListeners(){
 
 function run() {		// Main game-loop function
 	if(ready) {
-		var batchSize = batch_size;
-		while(batchSize > 0 && inBuff.length>0) {
-		var input = inBuff.shift();			// shift() removes the first element.... as in Queues
-			process(input);
-			batchSize--;
-		}
-		
+		handleInput();
+
 		// Fixed timestep: courtesy of Glenn Fiedler of gafferongames.com
 		var newTime = performance.now()*1.0;
 		calcFPS(newTime);
@@ -551,29 +561,72 @@ function run() {		// Main game-loop function
 	requestAnimationFrame(run);
 }	// end run()
 
-function process(input) {
+function handleInput(){
+	// grab a bunch of inputs, average em and apply the result
+	var avgX = avgY = 0.0;
+	var type = 'mm';
+	var batchSize = batch_size;
+	while(batchSize > 0 && inBuff.length>0) {
+		var input = inBuff.shift();			// shift() removes the first element.... as in Queues
+		avgX += input.xdir;
+		avgY += input.ydir;
+
+		if(input.inType == 'md')
+			type = 'md';
+		batchSize--;
+	}
+
+	var result = null;
+	if(batch_size - batchSize != 0) {	//  (batch_size - batchSize) is the number of inputs the while went over
+		result = {
+			xdir: avgX/(batch_size - batchSize),
+			ydir: avgY/(batch_size - batchSize),
+			inType: type
+		};
+		applyInput(result);
+	}
+}
+
+function applyInput(input) {
 	mp.directX = input.xdir;
 	mp.directY = input.ydir;
-	
+
 	var tempOrgans = [];
 	for(var i=0; i < mp.organs.length; i++) {
-		// each organ will try to move towards the mouse pointer, but later when the orgnas are packed together, they'll follow CM direction
-		var xspd = mp.organs[i].xspd;
-		var yspd = mp.organs[i].yspd;
-		var mag = Math.sqrt(xspd*xspd + yspd*yspd);
-		var ang = Math.atan2( (input.ydir+height/2) - (mp.organs[i].y-yshift),			// the direction angle from the organ to the mouse location
-							  (input.xdir+width/2)  - (mp.organs[i].x -xshift)  );
+		// each orgnas will try to move towards the mouse pointer, but later when the organs are packed together, they'll follow CM direction
 
-		mp.organs[i].xspd = Math.cos(ang) * mag;
-		mp.organs[i].yspd = Math.sin(ang) * mag;
+		var //orgDirx = input.ydir - mp.organs[i].y + mp.cmy,
+			//orgDiry = input.xdir - mp.organs[i].x + mp.cmx,
+			ang = Math.atan2(input.ydir - mp.organs[i].y + mp.cmy, input.xdir - mp.organs[i].x + mp.cmx);		// the direction angle from the organ to the mouse location
+			   
+		
+		// get the average center and radius (circle) of the connected group of this organ. The goal is to apply the same thrust to all connected components so they move in uniform as a whole
+		var group = {x:0, y:0, r:0};
+		for (var j = 0; j < mp.organs[i].connectedOrgans.length; j++) {
+			group.x +=  mp.organs[i].connectedOrgans[j].x;
+			group.y +=  mp.organs[i].connectedOrgans[j].y;
+			group.r +=  mp.organs[i].connectedOrgans[j].size;
+		}
+		group.x /= mp.organs[i].connectedOrgans.length;
+		group.y /= mp.organs[i].connectedOrgans.length;
+		group.r /= mp.organs[i].connectedOrgans.length;
 
-		if(input.inType == 'md')	// if this is a mouse click
+		// use the circle we calculated to calculate thrust
+		group.x = input.xdir - group.x + mp.cmx;
+		group.y = input.ydir - group.y + mp.cmy;
+		var thrustRadSq = Math.pow(group.r,2);	
+			thrust = Math.min(thrustRadSq, group.x*group.x + group.y*group.y) / thrustRadSq;		// in the interval [0,1], how fast the player is moving? 1 means full speed
+		
+		mp.organs[i].xspd = Math.cos(ang) * mp.organs[i].maxspd * thrust;
+		mp.organs[i].yspd = Math.sin(ang) * mp.organs[i].maxspd * thrust;
+	
+		if(input.inType == 'md')
 			tempOrgans.push(mp.organs[i].split());
 	}
 
-	for(var i=0; i < tempOrgans.length; i++) 
+	for(var i=0; i < tempOrgans.length; i++)
 		mp.organs.push(tempOrgans[i]);
-}	// end process()
+}
 
 function drawGrid() {
 	var scl = 50;	// the distance between grid lines
