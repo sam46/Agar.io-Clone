@@ -204,7 +204,7 @@ Organ.prototype.scatter = function(cx,cy) {
 	for (var i = 0; i < peices-1; i++) {
 		var xdir = Math.cos(curAng), ydir = Math.sin(curAng);
 		var org = new Organ(this.x,this.y,pcSize,
-				  this.xspd, this.yspd);
+				  this.xspd, this.yspd, this.maxspd);
 		org.easePos(xdir, ydir);
 		newOrgs.push(org);
 
