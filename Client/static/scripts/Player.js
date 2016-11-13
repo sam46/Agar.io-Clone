@@ -1,7 +1,8 @@
-function Organ(xpos, ypos, size, xSpd, ySpd) {
+function Organ(xpos, ypos, size, xSpd, ySpd, maxSpd) {
 	this.lock = false;		// lock organ position relative to the CM, so any velocity dragging it away from CM will be neglected
 	this.x = xpos;
 	this.y = ypos;
+	this.maxspd = maxSpd;	
 	this.xspd = xSpd;
 	this.yspd = ySpd;
 	this.size = size;	
@@ -13,6 +14,7 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	this.easeDist = 0.0;
 	this.easex = 0.0;
 	this.easey = 0.0;
+	this.splitLoc = null;
 
 	// bounciness effect variables and function
 	// this.equilibrium = [];	// original points at equilibrium
@@ -30,7 +32,6 @@ function Organ(xpos, ypos, size, xSpd, ySpd) {
 	// 		th : src.th,
 	// 	};
 	// }
-
 
 	// this.initPts = function(resetPts) {
 	// 	this.equilibrium = [];		
@@ -154,12 +155,13 @@ Organ.prototype.update = function () {
 
 	var dt = timestep/3500.0;
 	if(this.applyPosEase){
-		this.x += (ease_spd*dt*ease_step*this.easeDist) * this.easex;
-		this.y += (ease_spd*dt*ease_step*this.easeDist) * this.easey;
-		this.easeDist -= ease_spd*dt*ease_step*this.easeDist;
-		if(Math.abs(this.easeDist) <= 0.001){
+		this.x += /*(ease_spd*dt*ease_step*this.easeDist)*/this.maxspd*3.0 * this.easex;
+		this.y += /*(ease_spd*dt*ease_step*this.easeDist)*/this.maxspd*3.0 * this.easey;
+		this.easeDist -= /*ease_spd*dt*ease_step*this.easeDist*/ Math.sqrt(Math.pow(this.maxspd*3.0 * this.easex,2) + Math.pow(this.maxspd*3.0 * this.easey,2));
+		console.log(this.easeDist+"  "+(this.easeDist <= 0.001));
+		if(this.easeDist <= 0.001){
 			this.applyPosEase = false;
-			//this.lock = true;			// TODO: investigate 
+			this.lock = true;			// TODO: investigate 
 		}
 	}
 
@@ -169,8 +171,10 @@ Organ.prototype.update = function () {
 		//var isShrinking = this.massDelta < 0; 
 		this.size += ease_spd*dt*this.massDelta*ease_step;
 		this.massDelta -= ease_spd*dt*this.massDelta*ease_step;
-		if(Math.abs(this.massDelta) <= 0.01)
+		if(this.massDelta <= 0.01){
 			this.size = Math.round(this.size*10)/10.0;
+			this.lock = true;
+		}
 
 		//this.initPts(isShrinking);		// if the size is shrinking
 	}
@@ -187,7 +191,7 @@ Organ.prototype.split = function() {
 	this.sizeFinal /= 2.0;
 
 	var org2 = new Organ(this.x, this.y, Math.round(this.sizeFinal),
-	 		   this.xspd, this.yspd);
+	 		   this.xspd, this.yspd, this.maxspd);
 	var mag = Math.sqrt((org2.xspd*org2.xspd) + (org2.yspd*org2.yspd));
 	org2.easePos(org2.xspd/mag, org2.yspd/mag);
 
@@ -259,6 +263,7 @@ Organ.prototype.draw = function (context, name, isServer) {
 
  	// draw player name
 	if(showName){
+		name = this.lock? 'L':'U';
 	 	context.textAlign = 'center';
 	    context.font = '30px sans-serif';
 		context.strokeStyle = 'black';
@@ -278,6 +283,7 @@ function Player(player_id) {
 	this.cmy;
 	this.directX = 0;	// direction in which CM is headed
 	this.directY = 0;
+
 }
 
 Player.prototype.constrain = function(){	// constrain organs movements
@@ -394,7 +400,7 @@ function copyPlayer(src, target, preserveBounce){
 		var curOrg = src.organs[i];
 
 		var temp = new Organ(curOrg.x, curOrg.y, curOrg.size,
-			curOrg.xspd, curOrg.yspd);
+			curOrg.xspd, curOrg.yspd, curOrg.maxspd);
 		temp.lock = curOrg.lock;
 		temp.sizeFinal = curOrg.sizeFinal;
 		temp.massDelta = curOrg.massDelta;

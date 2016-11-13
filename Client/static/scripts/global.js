@@ -16,7 +16,7 @@ let ip_address = "localhost", port = "8080", conn,
     xshift, yshift,     	      // for translating the world to be in main player's perspective
     batch_size = 30,		      // how many user inputs to handle and send each frame  TODO: tweak
     fps_arr = [], _ind_ = 0, fps;	// for showing fps
-
+    thrustControlRadius = Math.pow(50.0, 2);
 let authState = null,           // the server's authoritative raw state of the mp
     predictedState = null;		
     pendingInputs = []

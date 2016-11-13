@@ -51,9 +51,10 @@ function Organ(xpos, ypos, size, xSpd, ySpd, maxSpd) {
 	this.equilibrium = [];	// original surface points at equilibrium
 	this.pts = [];		// surface points offseted from equilibrium, but always (should be) contained within the equilibrium surface
 	this.ptsCount = 0;		// how many points/sides to use for modeling the organ surface
-	this.restoreSpd = 0.0265;	// how fast does pts[] try to reach equilibrium[] 
-	this._beg = 0;
+	this.restoreSpd = 0.0265*150/this.size;	// how fast does pts[] try to reach equilibrium[] 
+	this.ang = 0;
 	this._var = 0;
+	this.time = 0;
 
 	function copyPoint(src) {
 		return {
@@ -214,19 +215,20 @@ Organ.prototype.scatter = function(cx,cy) {
 	return newOrgs;
 };
 
+
 Organ.prototype.update = function () {
 	this.restore();
 	this.move();
 
-	// TODO: tweak correlation between movement and bounciness	
+	// TODO: tweak	
 	this._var++;
 	if(this._var % ripple.speed == 0){
-		var freq = Math.max(Math.random()*ripple.freq,1), ang =  Math.PI*2/freq;
-		this._beg += ang;
-
-		for (var i = 0; i < freq; i++) {
-			this.impact(i*ang + this._beg, Math.PI/freq, ripple.strength);
+		var steps = 6, dAng = 2*Math.PI/steps;
+		for(var i = 0; i < 5; i++){
+			this.impact(this.ang, Math.PI/12, 3.25*noise(this.ang/10,this.time)*Math.sqrt(this.size)/(10));
+			this.ang += dAng;
 		}
+		this.time++;
 	}
 
 	// I'm using a sloppy lerping hack for projectile motion

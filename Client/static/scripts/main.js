@@ -60,13 +60,14 @@ function Connect(){
 		if(fst_msg) {	// first message will contain data only meant for mp
 			var init_data = String(e.data).split(',');
 			mp.pid = parseInt(init_data[0]);
-			mp.organs.push(new Organ(1,1,parseFloat(init_data[3]),1,1));
+			mp.organs.push(new Organ(1,1,parseFloat(init_data[3]),1,1,1));
 			mp.organs[0].x = parseFloat(init_data[1]);
 			mp.organs[0].y = parseFloat(init_data[2]);
 			mp.organs[0].size = parseFloat(init_data[3]);
 			mp.organs[0].sizeFinal = parseFloat(init_data[4]);
 			mp.organs[0].xspd = parseFloat(init_data[5]);
 			mp.organs[0].yspd = parseFloat(init_data[6]);
+			mp.organs[0].maxspd = Math.sqrt(mp.organs[0].xspd*mp.organs[0].xspd + mp.organs[0].yspd*mp.organs[0].yspd);
 			mp.cmx = mp.organs[0].x;
 			mp.cmy = mp.organs[0].y;
 
@@ -111,7 +112,8 @@ function Connect(){
 				parseFloat(orgData[1]),
 				parseFloat(orgData[2]),
 				parseFloat(orgData[3]),
-				parseFloat(orgData[4])
+				parseFloat(orgData[4]),
+				Math.sqrt(parseFloat(orgData[3])*parseFloat(orgData[3]) + parseFloat(orgData[4])*parseFloat(orgData[4]))
 			);
 			curOrg.lock =  parseInt(orgData[5]) ? true : false;
 			curOrg.applyPosEase = parseInt(orgData[6]) ? true : false;
@@ -392,18 +394,19 @@ function run() {		// Main game-loop function
 function applyInput(input) {
 	mp.directX = input.xdir;
 	mp.directY = input.ydir;
-	
+	var thrust = Math.min(thrustControlRadius,input.xdir*input.xdir + input.ydir*input.ydir) / thrustControlRadius;	// in the interval [0,1], how fast the player is moving? 1 means full speed
+
 	var tempOrgans = [];
 	for(var i=0; i < mp.organs.length; i++) {
 		// each orgnas will try to move towards the mouse pointer, but later when the organs are packed together, they'll follow CM direction
-		var xspd = mp.organs[i].xspd;
-		var yspd = mp.organs[i].yspd;
-		var mag = Math.sqrt(xspd*xspd + yspd*yspd);
+
 		var ang = Math.atan2( input.ydir - mp.organs[i].y + mp.cmy,			// the direction angle from the organ to the mouse location
 							  input.xdir - mp.organs[i].x + mp.cmx  );
-
-		mp.organs[i].xspd = Math.cos(ang) * mag;
-		mp.organs[i].yspd = Math.sin(ang) * mag;
+		
+		//if(distSq(mp.organs[i].x, mp.organs[i].y, mp.cmx, mp.cmy) >= 500) 
+			thrust = 1;
+		mp.organs[i].xspd = Math.cos(ang) * mp.organs[i].maxspd * thrust;
+		mp.organs[i].yspd = Math.sin(ang) * mp.organs[i].maxspd * thrust;
 
 		if(input.inType == 'md')
 			tempOrgans.push(mp.organs[i].split());
