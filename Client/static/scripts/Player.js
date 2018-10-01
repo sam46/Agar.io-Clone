@@ -16,6 +16,9 @@ function Organ(xpos, ypos, size, xSpd, ySpd, maxSpd) {
 	this.easey = 0.0;
 	this.splitLoc = null;
 
+	
+	
+	// OLD code
 	// bounciness effect variables and function
 	// this.equilibrium = [];	// original points at equilibrium
 	// this.pts = [];
