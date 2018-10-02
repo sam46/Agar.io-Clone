@@ -18,20 +18,18 @@
  * @requires core
  */
 
-var PERLIN_YWRAPB = 4;
-var PERLIN_YWRAP = 1<<PERLIN_YWRAPB;
-var PERLIN_ZWRAPB = 8;
-var PERLIN_ZWRAP = 1<<PERLIN_ZWRAPB;
-var PERLIN_SIZE = 4095;
+const PERLIN_YWRAPB = 4;
+const PERLIN_YWRAP = 1<<PERLIN_YWRAPB;
+const PERLIN_ZWRAPB = 8;
+const PERLIN_ZWRAP = 1<<PERLIN_ZWRAPB;
+const PERLIN_SIZE = 4095;
 
-var perlin_octaves = 4; // default to medium smooth
-var perlin_amp_falloff = 0.5; // 50% reduction/octave
+let perlin_octaves = 4; // default to medium smooth
+let perlin_amp_falloff = 0.5; // 50% reduction/octave
 
-var scaled_cosine = function(i) {
-  return 0.5*(1.0-Math.cos(i*Math.PI));
-};
+const scaled_cosine = i => 0.5*(1.0-Math.cos(i*Math.PI));
 
-var perlin; // will be initialized lazily by noise() or noiseSeed()
+let perlin; // will be initialized lazily by noise() or noiseSeed()
 
 
 /**
@@ -100,13 +98,13 @@ var perlin; // will be initialized lazily by noise() or noiseSeed()
  *
  */
 
-noise = function(x,y,z) {
+noise = (x, y, z) => {
   y = y || 0;
   z = z || 0;
 
   if (perlin == null) {
     perlin = new Array(PERLIN_SIZE + 1);
-    for (var i = 0; i < PERLIN_SIZE + 1; i++) {
+    for (let i = 0; i < PERLIN_SIZE + 1; i++) {
       perlin[i] = Math.random();
     }
   }
@@ -115,19 +113,24 @@ noise = function(x,y,z) {
   if (y<0) { y=-y; }
   if (z<0) { z=-z; }
 
-  var xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
-  var xf = x - xi;
-  var yf = y - yi;
-  var zf = z - zi;
-  var rxf, ryf;
+  let xi=Math.floor(x);
+  let yi=Math.floor(y);
+  let zi=Math.floor(z);
+  let xf = x - xi;
+  let yf = y - yi;
+  let zf = z - zi;
+  let rxf;
+  let ryf;
 
-  var r=0;
-  var ampl=0.5;
+  let r=0;
+  let ampl=0.5;
 
-  var n1,n2,n3;
+  let n1;
+  let n2;
+  let n3;
 
-  for (var o=0; o<perlin_octaves; o++) {
-    var of=xi+(yi<<PERLIN_YWRAPB)+(zi<<PERLIN_ZWRAPB);
+  for (let o=0; o<perlin_octaves; o++) {
+    let of=xi+(yi<<PERLIN_YWRAPB)+(zi<<PERLIN_ZWRAPB);
 
     rxf = scaled_cosine(xf);
     ryf = scaled_cosine(yf);
@@ -221,7 +224,7 @@ noise = function(x,y,z) {
  * 2 vertical grey smokey patterns affected my mouse x-position and noise.
  *
  */
-noiseDetail = function(lod, falloff) {
+noiseDetail = (lod, falloff) => {
   if (lod>0)     { perlin_octaves=lod; }
   if (falloff>0) { perlin_amp_falloff=falloff; }
 };
@@ -255,29 +258,32 @@ noiseDetail = function(lod, falloff) {
  * vertical grey lines drawing in pattern affected by noise.
  *
  */
-noiseSeed = function(seed) {
+noiseSeed = seed => {
   // Linear Congruential Generator
   // Variant of a Lehman Generator
-  var lcg = (function() {
+  const lcg = ((() => {
     // Set to values from http://en.wikipedia.org/wiki/Numerical_Recipes
     // m is basically chosen to be large (as it is the max period)
     // and for its relationships to a and c
-    var m = 4294967296,
-    // a - 1 should be divisible by m's prime factors
-    a = 1664525,
-     // c and m should be co-prime
-    c = 1013904223,
-    seed, z;
+    const m = 4294967296;
+
+    const // a - 1 should be divisible by m's prime factors
+    // c and m should be co-prime
+    a = 1664525;
+
+    const c = 1013904223;
+    let seed;
+    let z;
     return {
-      setSeed : function(val) {
+      setSeed(val) {
         // pick a random seed if val is undefined or null
         // the >>> 0 casts the seed to an unsigned 32-bit integer
         z = seed = (val == null ? Math.random() * m : val) >>> 0;
       },
-      getSeed : function() {
+      getSeed() {
         return seed;
       },
-      rand : function() {
+      rand() {
         // define the recurrence relationship
         z = (a * z + c) % m;
         // return a float in [0, 1)
@@ -285,13 +291,13 @@ noiseSeed = function(seed) {
         return z / m;
       }
     };
-  }());
+  })());
 
   lcg.setSeed(seed);
   perlin = new Array(PERLIN_SIZE + 1);
-  for (var i = 0; i < PERLIN_SIZE + 1; i++) {
+  for (let i = 0; i < PERLIN_SIZE + 1; i++) {
     perlin[i] = lcg.rand();
   }
 };
 
-module.exports = p5;
+export default p5;
