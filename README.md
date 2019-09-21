@@ -1,25 +1,43 @@
-# Agarioplica
+# Agar.io Clone
 
-A replica of the real-time multiplayer browser game [agar.io](http://agar.io/), featuring client-side prediction and lag compensation.
-
-The server is written in Java. Client-side code utilizes HTML5 and Jquery.
-Server-client communication is done using [web sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
+A replica of the real-time multiplayer browser game [agar.io](http://agar.io/), featuring client-side prediction and lag compensation based on Valve's [Source Engine](https://developer.valvesoftware.com/wiki/Source)
 
 ### STILL A WORK IN PROGRESS!
 ![Image](snapshot1.png)
 
+- [Agar.io Clone](#Agar.io-clone)
+    + [Gameplay](#gameplay)
+    + [No-server demo](#No-server-demo)
+    + [Build](#build)
+        * [With docker](#with-docker)
+        * [With gradle](#with-gradle)
+    + [Tests](#tests)
+    + [Implementation](#implementation)
+    + [TODO](#todo)
+  
 #### Gameplay
 Move with mouse, shoot mass with left-click.
 
-#### Demo
-There is a simple browser-only demo in the [Local demo](https://github.com/sam46/Agar.io-Clone/tree/master/Local%20demo) folder. Check it out to quickly see if you dig it. 
+#### No-server demo
+There is a simple browser-only demo in the [NoServerDemo](https://github.com/sam46/Agar.io-Clone/tree/master/NoServerDemo) folder. Check it out to quickly see if you dig it. 
 Use Google Chrome!
 
-#### Building
+#### Build
+##### With docker:
+To build and run the server in docker:
+```
+$ make start
+```
+this builds and runs a docker image tagged `agario` on port `8080`, and also uses the `Server` directory as a shared volume.
 
-To run the server, build the files in the src folder and include the jar file in your project dependencies. Run the client from the Client folder (and again, use Google Chrome!).
+##### With gradle
+build and run the server:
+```
+$ cd Server
+$ gradle build run 
+```
 
-#### TODO List
+#### TODO
 - [x] Fixing time-stepping on server and clients
 - [ ] Handling blob generation and synchronization across clients
 - [ ] Collision Detection (with Quad trees?)
@@ -30,10 +48,4 @@ To run the server, build the files in the src folder and include the jar file in
 - [ ] Tweaking input processing and buffering across threads
 - [ ] Optimization for CPU-heavy code
 - [ ] Creating a pre-game panel for preliminary settings and player name input
-- [ ] Testing Java multi-threading for potential concurrency flaws
 - [ ] Splitting upon colliding into viruses (in progress)
-
-This project uses a websockets Java library by TooTallNate:
-https://github.com/TooTallNate/Java-WebSocket/blob/master/dist/java_websocket.jar
-
-Created in Summer 2016.
