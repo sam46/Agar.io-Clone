@@ -11,8 +11,6 @@ A replica of the real-time multiplayer browser game [agar.io](http://agar.io/), 
     + [Build](#build)
         * [With docker](#with-docker)
         * [With gradle](#with-gradle)
-    + [Tests](#tests)
-    + [Implementation](#implementation)
     + [TODO](#todo)
   
 #### Gameplay
@@ -44,7 +42,7 @@ $ gradle build run
 - [x] Porting physics to Java on the server 
 - [ ] Implementing [Source strategy](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking) for client-server communication. Better explained [here](http://www.gabrielgambetta.com/fpm1.html) (in progress)
 - [ ] Replacing string data communication between server and clients with other formats/encoding. (JSON or raw binary?) 
-- [x] Enhanced graphics/effects (added blobbiness/elasticity effects)
+- [x] Better effects (added blobbiness/elasticity effects)
 - [ ] Tweaking input processing and buffering across threads
 - [ ] Optimization for CPU-heavy code
 - [ ] Creating a pre-game panel for preliminary settings and player name input
